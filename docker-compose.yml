@@ -22,10 +22,10 @@ services:
     container_name: laravelapp-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: 'lara_db'
+      MYSQL_DATABASE: 'laravel'
       MYSQL_ROOT_PASSWORD: 'root'
-      MYSQL_PASSWORD: 'lara_password'
-      MYSQL_USER: 'lara_user'
+      MYSQL_PASSWORD: 'laravel'
+      MYSQL_USER: 'laravel'
     volumes:
       - ./db/mysql:/var/lib/mysql
       - ./.docker/mysql/my.cnf:/etc/mysql/my.cnf
@@ -33,7 +33,7 @@ services:
       - laravelapp
 
   nginx:
-    image: nginx:1.17-alpine
+    image: nginx:1.20.0-alpine
     container_name: laravelapp-nginx
     restart: unless-stopped
     ports:

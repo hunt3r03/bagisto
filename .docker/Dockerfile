@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
+    nodejs \
+    npm \
     && docker-php-ext-install pdo_mysql \
     && docker-php-ext-install mbstring \
     && docker-php-ext-install exif \
@@ -37,5 +39,8 @@ WORKDIR /var/www
 
 USER root
 RUN chmod -R 777 /var/www
+RUN git clone https://github.com/hunt3r03/laravel.git
+RUN cd laravel
+RUN mv $PWD/. /var/www
 
-USER $user
+USER $user 

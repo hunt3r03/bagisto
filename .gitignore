@@ -4,6 +4,7 @@
 .vscode
 .vagrant
 /data
+/db
 /docker-compose-collection
 Homestead.json
 Homestead.yaml
