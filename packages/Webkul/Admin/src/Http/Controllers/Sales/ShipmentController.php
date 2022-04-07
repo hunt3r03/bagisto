@@ -2,9 +2,10 @@
 
 namespace Webkul\Admin\Http\Controllers\Sales;
 
+use Webkul\Admin\DataGrids\OrderShipmentsDataGrid;
 use Webkul\Admin\Http\Controllers\Controller;
-use Webkul\Sales\Repositories\OrderRepository;
 use Webkul\Sales\Repositories\OrderItemRepository;
+use Webkul\Sales\Repositories\OrderRepository;
 use Webkul\Sales\Repositories\ShipmentRepository;
 
 class ShipmentController extends Controller
@@ -17,27 +18,6 @@ class ShipmentController extends Controller
     protected $_config;
 
     /**
-     * OrderRepository object
-     *
-     * @var \Webkul\Sales\Repositories\OrderRepository
-     */
-    protected $orderRepository;
-
-    /**
-     * OrderItemRepository object
-     *
-     * @var \Webkul\Sales\Repositories\OrderItemRepository
-     */
-    protected $orderItemRepository;
-
-    /**
-     * ShipmentRepository object
-     *
-     * @var \Webkul\Sales\Repositories\ShipmentRepository
-     */
-    protected $shipmentRepository;
-
-    /**
      * Create a new controller instance.
      *
      * @param  \Webkul\Sales\Repositories\ShipmentRepository   $shipmentRepository
@@ -46,20 +26,12 @@ class ShipmentController extends Controller
      * @return void
      */
     public function __construct(
-        ShipmentRepository $shipmentRepository,
-        OrderRepository $orderRepository,
-        OrderItemRepository $orderItemRepository
+        protected ShipmentRepository $shipmentRepository,
+        protected OrderRepository $orderRepository,
+        protected OrderItemRepository $orderItemRepository
     )
     {
-        $this->middleware('admin');
-
         $this->_config = request('_config');
-
-        $this->orderRepository = $orderRepository;
-
-        $this->orderItemRepository = $orderItemRepository;
-
-        $this->shipmentRepository = $shipmentRepository;
     }
 
     /**
@@ -69,6 +41,10 @@ class ShipmentController extends Controller
      */
     public function index()
     {
+        if (request()->ajax()) {
+            return app(OrderShipmentsDataGrid::class)->toJson();
+        }
+
         return view($this->_config['view']);
     }
 
@@ -82,7 +58,7 @@ class ShipmentController extends Controller
     {
         $order = $this->orderRepository->findOrFail($orderId);
 
-        if (! $order->channel || !$order->canShip()) {
+        if (! $order->channel || ! $order->canShip()) {
             session()->flash('error', trans('admin::app.sales.shipments.creation-error'));
 
             return redirect()->back();
@@ -108,8 +84,8 @@ class ShipmentController extends Controller
         }
 
         $this->validate(request(), [
-            'shipment.source'        => 'required',
-            'shipment.items.*.*'     => 'required|numeric|min:0',
+            'shipment.source'    => 'required',
+            'shipment.items.*.*' => 'required|numeric|min:0',
         ]);
 
         $data = request()->all();
@@ -128,7 +104,7 @@ class ShipmentController extends Controller
     }
 
     /**
-     * Checks if requested quantity available or not
+     * Checks if requested quantity available or not.
      *
      * @param  array  $data
      * @return bool
@@ -136,7 +112,7 @@ class ShipmentController extends Controller
     public function isInventoryValidate(&$data)
     {
         if (! isset($data['shipment']['items'])) {
-            return ;
+            return;
         }
 
         $valid = false;
@@ -144,7 +120,9 @@ class ShipmentController extends Controller
         $inventorySourceId = $data['shipment']['source'];
 
         foreach ($data['shipment']['items'] as $itemId => $inventorySource) {
-            if ($qty = $inventorySource[$inventorySourceId]) {
+            $qty = $inventorySource[$inventorySourceId];
+
+            if ((int) $qty) {
                 $orderItem = $this->orderItemRepository->find($itemId);
 
                 if ($orderItem->qty_to_ship < $qty) {
@@ -169,8 +147,8 @@ class ShipmentController extends Controller
                     }
                 } else {
                     $availableQty = $orderItem->product->inventories()
-                            ->where('inventory_source_id', $inventorySourceId)
-                            ->sum('qty');
+                        ->where('inventory_source_id', $inventorySourceId)
+                        ->sum('qty');
 
                     if ($orderItem->qty_to_ship < $qty || $availableQty < $qty) {
                         return false;

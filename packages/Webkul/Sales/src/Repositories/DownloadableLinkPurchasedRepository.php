@@ -9,14 +9,6 @@ use Webkul\Product\Repositories\ProductDownloadableLinkRepository;
 
 class DownloadableLinkPurchasedRepository extends Repository
 {
-
-    /**
-     * ProductDownloadableLinkRepository object
-     *
-     * @var \Webkul\Product\Repositories\ProductDownloadableLinkRepository
-     */
-    protected $productDownloadableLinkRepository;
-
     /**
      * Create a new repository instance.
      *
@@ -24,12 +16,10 @@ class DownloadableLinkPurchasedRepository extends Repository
      * @return void
      */
     public function __construct(
-        ProductDownloadableLinkRepository $productDownloadableLinkRepository,
+        protected ProductDownloadableLinkRepository $productDownloadableLinkRepository,
         App $app
     )
     {
-        $this->productDownloadableLinkRepository = $productDownloadableLinkRepository;
-
         parent::__construct($app);
     }
 
@@ -105,6 +95,9 @@ class DownloadableLinkPurchasedRepository extends Repository
                     foreach ($purchasedLink->order_item->invoice_items as $invoice_item) {
                         $totalInvoiceQty = $totalInvoiceQty + $invoice_item->qty;
                     }
+
+                    $orderedQty = $purchasedLink->order_item->qty_ordered;
+                    $totalInvoiceQty = $totalInvoiceQty * ($purchasedLink->download_bought / $orderedQty);            
 
                     $this->update([
                         'status' => $purchasedLink->download_used == $totalInvoiceQty ? $status : $purchasedLink->status,

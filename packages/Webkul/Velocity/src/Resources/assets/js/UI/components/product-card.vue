@@ -59,7 +59,7 @@
                     :title="product.name"
                     :href="`${baseUrl}/${product.slug}`">
 
-                    <span class="fs16">{{ product.name | truncate }}</span>
+                    <span class="fs16">{{ product.name }}</span>
                 </a>
             </div>
 
@@ -67,7 +67,7 @@
                 {{ product.new }}
             </div>
 
-            <div class="product-price fs16" v-html="product.priceHTML"></div>
+            <div v-html="product.priceHTML"></div>
 
             <div
                 class="product-rating col-12 no-padding"

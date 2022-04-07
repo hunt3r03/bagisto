@@ -2,105 +2,44 @@
 
 namespace Webkul\Velocity\Helpers;
 
-use Illuminate\Support\Facades\DB;
-use Webkul\Product\Helpers\Review;
-use Webkul\Product\Facades\ProductImage;
-use Webkul\Product\Models\Product as ProductModel;
-use Webkul\Product\Repositories\ProductRepository;
-use Webkul\Product\Repositories\ProductFlatRepository;
-use Webkul\Velocity\Repositories\OrderBrandsRepository;
-use Webkul\Product\Repositories\ProductReviewRepository;
 use Webkul\Attribute\Repositories\AttributeOptionRepository;
+use Webkul\Product\Facades\ProductImage;
+use Webkul\Product\Helpers\Review;
+use Webkul\Product\Models\Product as ProductModel;
+use Webkul\Product\Repositories\ProductFlatRepository;
+use Webkul\Product\Repositories\ProductRepository;
+use Webkul\Product\Repositories\ProductReviewRepository;
+use Webkul\Velocity\Repositories\OrderBrandsRepository;
 use Webkul\Velocity\Repositories\VelocityMetadataRepository;
 
 class Helper extends Review
 {
     /**
-     * productModel object
+     * Create a helper instance.
      *
-     * @var \Webkul\Product\Contracts\Product
-     */
-   protected $productModel;
-
-    /**
-     * orderBrands object
-     *
-     * @var \Webkul\Velocity\Repositories\OrderBrandsRepository
-     */
-    protected $orderBrandsRepository;
-
-    /**
-     * ProductRepository object
-     *
-     * @var \Webkul\Product\Repositories\ProductRepository
-     */
-    protected $productRepository;
-
-    /**
-     * ProductFlatRepository object
-     *
-     * @var \Webkul\Product\Repositories\ProductFlatRepository
-     */
-    protected $productFlatRepository;
-
-    /**
-     * productModel object
-     *
-     * @var \Webkul\Attribute\Repositories\AttributeOptionRepository
-     */
-    protected $attributeOptionRepository;
-
-    /**
-     * ProductReviewRepository object
-     *
-     * @var \Webkul\Product\Repositories\ProductReviewRepository
-     */
-    protected $productReviewRepository;
-
-    /**
-     * VelocityMetadata object
-     *
-     * @var \Webkul\Velocity\Repositories\VelocityMetadataRepository
-     */
-    protected $velocityMetadataRepository;
-
-    /**
-     * Create a helper instamce
-     *
-     * @param  \Webkul\Product\Contracts\Product                        $productModel
-     * @param  \Webkul\Velocity\Repositories\OrderBrandsRepository      $orderBrands
-     * @param  \Webkul\Attribute\Repositories\AttributeOptionRepository $attributeOptionRepository
-     * @param  \Webkul\Product\Repositories\ProductReviewRepository     $productReviewRepository
-     * @param  \Webkul\Velocity\Repositories\VelocityMetadataRepository $velocityMetadataRepository
-     *
+     * @param  \Webkul\Product\Contracts\Product  $productModel
+     * @param  \Webkul\Velocity\Repositories\OrderBrandsRepository  $orderBrands
+     * @param  \Webkul\Attribute\Repositories\AttributeOptionRepository  $attributeOptionRepository
+     * @param  \Webkul\Product\Repositories\ProductReviewRepository  $productReviewRepository
+     * @param  \Webkul\Velocity\Repositories\VelocityMetadataRepository  $velocityMetadataRepository
      * @return void
      */
     public function __construct(
-        ProductModel $productModel,
-        ProductRepository $productRepository,
-        AttributeOptionRepository $attributeOptionRepository,
-        ProductFlatRepository $productFlatRepository,
-        OrderBrandsRepository $orderBrandsRepository,
-        ProductReviewRepository $productReviewRepository,
-        VelocityMetadataRepository $velocityMetadataRepository
-    ) {
-        $this->productModel =  $productModel;
-
-        $this->attributeOptionRepository =  $attributeOptionRepository;
-
-        $this->productRepository = $productRepository;
-
-        $this->productFlatRepository = $productFlatRepository;
-
-        $this->orderBrandsRepository = $orderBrandsRepository;
-
-        $this->productReviewRepository =  $productReviewRepository;
-
-        $this->velocityMetadataRepository =  $velocityMetadataRepository;
+        protected ProductModel $productModel,
+        protected ProductRepository $productRepository,
+        protected AttributeOptionRepository $attributeOptionRepository,
+        protected ProductFlatRepository $productFlatRepository,
+        protected OrderBrandsRepository $orderBrandsRepository,
+        protected ProductReviewRepository $productReviewRepository,
+        protected VelocityMetadataRepository $velocityMetadataRepository
+    )
+    {
     }
 
     /**
-     * @param  \Webkul\Sales\Contracts\Order $order
+     * Top brand.
+     *
+     * @param  \Webkul\Sales\Contracts\Order  $order
      *
      * @return void
      */
@@ -118,11 +57,14 @@ class Helper extends Review
                     'product_id'    => $orderItem->product_id,
                     'brand'         => $products[$key]->brand,
                 ]);
-            } catch(\Exception $exception) {}
+            } catch (\Exception $exception) {
+            }
         }
     }
 
     /**
+     * Get brands with categories.
+     *
      * @return \Illuminate\Support\Collection|\Exception
      */
     public function getBrandsWithCategories()
@@ -139,11 +81,11 @@ class Helper extends Review
 
                 $categoryName = $brandName = $brandImplode = [];
 
-                foreach($product_categories as $totalData) {
+                foreach ($product_categories as $totalData) {
                     $brand = $this->attributeOptionRepository->findOneWhere(['id' => $totalData['brand']]);
 
                     foreach ($totalData['categories'] as $categories) {
-                        foreach($categories['translations'] as $catName) {
+                        foreach ($categories['translations'] as $catName) {
                             if (isset($brand->admin_name)) {
                                 $brandData[$brand->admin_name][] = $catName['name'];
                                 $categoryName[] = $catName['name'];
@@ -154,21 +96,21 @@ class Helper extends Review
 
                 $uniqueCategoryName = array_unique($categoryName);
 
-                foreach($uniqueCategoryName as $key => $categoryNameValue) {
-                    foreach($brandData as $brandDataKey => $brandDataValue) {
-                        if(in_array($categoryNameValue,$brandDataValue)) {
+                foreach ($uniqueCategoryName as $key => $categoryNameValue) {
+                    foreach ($brandData as $brandDataKey => $brandDataValue) {
+                        if (in_array($categoryNameValue, $brandDataValue)) {
                             $brandName[$categoryNameValue][] = $brandDataKey;
                         }
                     }
                 }
 
-                foreach($brandName as $brandKey => $brandvalue) {
-                    $brandImplode[$brandKey][] = implode(' | ',array_map("ucfirst", $brandvalue));
+                foreach ($brandName as $brandKey => $brandvalue) {
+                    $brandImplode[$brandKey][] = implode(' | ', array_map('ucfirst', $brandvalue));
                 }
 
                 return $brandImplode;
             }
-        } catch (Exception $exception){
+        } catch (\Exception $exception) {
             throw $exception;
         }
     }
@@ -176,7 +118,7 @@ class Helper extends Review
     /**
      * Returns the count rating of the product.
      *
-     * @return array
+     * @return \Webkul\Velocity\Repositories\VelocityMetadataRepository
      */
     public function getVelocityMetaData($locale = null, $channel = null, $default = true)
     {
@@ -187,23 +129,23 @@ class Helper extends Review
         }
 
         if (! $locale) {
-            $locale = request()->get('locale') ?: app()->getLocale();
+            $locale = core()->getRequestedLocaleCode();
         }
 
         if (! $channel) {
-            $channel = request()->get('channel') ?: core()->getCurrentChannelCode() ?: 'default';
+            $channel = core()->getRequestedChannelCode();
         }
 
         try {
             $metaData = $this->velocityMetadataRepository->findOneWhere([
-                'locale' => $locale,
-                'channel' => $channel
+                'locale'  => $locale,
+                'channel' => $channel,
             ]);
 
             if (! $metaData && $default) {
                 $metaData = $this->velocityMetadataRepository->findOneWhere([
-                    'locale' => 'en',
-                    'channel' => 'default'
+                    'locale'  => 'en',
+                    'channel' => 'default',
                 ]);
             }
 
@@ -213,21 +155,55 @@ class Helper extends Review
     }
 
     /**
+     * Get shop recent views.
+     *
      * @param  int  $reviewCount
      * @return \Illuminate\Support\Collection
      */
     public function getShopRecentReviews($reviewCount = 4)
     {
         $reviews = $this->productReviewRepository
-                        ->getModel()
-                        ->orderBy('id', 'desc')
-                        ->where('status', 'approved')
-                        ->take($reviewCount)->get();
+            ->getModel()
+            ->orderBy('id', 'desc')
+            ->where('status', 'approved')
+            ->take($reviewCount)->get();
 
         return $reviews;
     }
 
     /**
+     * Get messages from session.
+     *
+     * @return void
+     */
+    public function getMessage()
+    {
+        $message = [
+            'message'      => '',
+            'messageType'  => '',
+            'messageLabel' => '',
+        ];
+
+        if ($message['message'] = session('success')) {
+            $message['messageType'] = 'alert-success';
+            $message['messageLabel'] = __('velocity::app.shop.general.alert.success');
+        } else if ($message['message'] = session('warning')) {
+            $message['messageType'] = 'alert-warning';
+            $message['messageLabel'] = __('velocity::app.shop.general.alert.warning');
+        } else if ($message['message'] = session('error')) {
+            $message['messageType'] = 'alert-danger';
+            $message['messageLabel'] = __('velocity::app.shop.general.alert.error');
+        } else if ($message['message'] = session('info')) {
+            $message['messageType'] = 'alert-info';
+            $message['messageLabel'] = __('velocity::app.shop.general.alert.info');
+        }
+
+        return $message;
+    }
+
+    /**
+     * Get json translations.
+     *
      * @return array
      */
     public function jsonTranslations()
@@ -239,7 +215,7 @@ class Helper extends Review
         if (is_string($path) && is_readable($path)) {
             return include $path;
         } else {
-            $currentLocale = "en";
+            $currentLocale = 'en';
 
             $path = __DIR__ . "/../Resources/lang/$currentLocale/app.php";
 
@@ -248,6 +224,8 @@ class Helper extends Review
     }
 
     /**
+     * Format cart item.
+     *
      * @param  \Webkul\Checkout\Contracts\CartItem  $item
      * @return array
      */
@@ -268,10 +246,11 @@ class Helper extends Review
     }
 
     /**
+     * Format product.
+     *
      * @param  \Webkul\Product\Contracts\Product  $product
      * @param  bool                               $list
      * @param  array                              $metaInformation
-     *
      * @return array
      */
     public function formatProduct($product, $list = false, $metaInformation = [])
@@ -281,8 +260,8 @@ class Helper extends Review
         $galleryImages = ProductImage::getGalleryImages($product);
         $productImage = ProductImage::getProductBaseImage($product, $galleryImages)['medium_image_url'];
 
-        $largeProductImageName = "large-product-placeholder.png";
-        $mediumProductImageName = "meduim-product-placeholder.png";
+        $largeProductImageName = 'large-product-placeholder.png';
+        $mediumProductImageName = 'meduim-product-placeholder.png';
 
         if (strpos($productImage, $mediumProductImageName) > -1) {
             $productImageNameCollection = explode('/', $productImage);
@@ -298,29 +277,29 @@ class Helper extends Review
         $isProductNew = ($product->new && ! strpos($priceHTML, 'sticker sale') > 0) ? __('shop::app.products.new') : false;
 
         return [
-            'priceHTML'         => $priceHTML,
-            'avgRating'         => ceil($reviewHelper->getAverageRating($product)),
-            'totalReviews'      => $reviewHelper->getTotalReviews($product),
-            'image'             => $productImage,
-            'new'               => $isProductNew,
-            'galleryImages'     => $galleryImages,
-            'name'              => $product->name,
-            'slug'              => $product->url_key,
-            'description'       => $product->description,
-            'shortDescription'  => $product->short_description,
-            'firstReviewText'   => trans('velocity::app.products.be-first-review'),
-            'addToCartHtml'     => view('shop::products.add-to-cart', [
-                'product'           => $product,
-                'addWishlistClass'  => ! (isset($list) && $list) ? '' : '',
+            'priceHTML'        => $priceHTML,
+            'avgRating'        => ceil($reviewHelper->getAverageRating($product)),
+            'totalReviews'     => $reviewHelper->getTotalReviews($product),
+            'image'            => $productImage,
+            'new'              => $isProductNew,
+            'galleryImages'    => $galleryImages,
+            'name'             => $product->name,
+            'slug'             => $product->url_key,
+            'description'      => $product->description,
+            'shortDescription' => $product->short_description,
+            'firstReviewText'  => trans('velocity::app.products.be-first-review'),
+            'addToCartHtml'    => view('shop::products.add-to-cart', [
+                'product'          => $product,
+                'addWishlistClass' => ! (isset($list) && $list) ? '' : '',
 
-                'showCompare'       => core()->getConfigData('general.content.shop.compare_option') == "1"
-                                       ? true : false,
+                'showCompare' => core()->getConfigData('general.content.shop.compare_option') == '1'
+                    ? true : false,
 
-                'btnText'           => (isset($metaInformation['btnText']) && $metaInformation['btnText'])
-                                       ? $metaInformation['btnText'] : null,
+                'btnText' => (isset($metaInformation['btnText']) && $metaInformation['btnText'])
+                    ? $metaInformation['btnText'] : null,
 
-                'moveToCart'        => (isset($metaInformation['moveToCart']) && $metaInformation['moveToCart'])
-                                       ? $metaInformation['moveToCart'] : null,
+                'moveToCart' => (isset($metaInformation['moveToCart']) && $metaInformation['moveToCart'])
+                    ? $metaInformation['moveToCart'] : null,
 
                 'addToCartBtnClass' => ! (isset($list) && $list) ? 'small-padding' : '',
             ])->render(),
@@ -328,14 +307,13 @@ class Helper extends Review
     }
 
     /**
-     * Returns the count rating of the product
+     * Returns the count rating of the product.
      *
      * @param $items
      * @param $separator
-     *
      * @return array
      */
-    public function fetchProductCollection($items, $moveToCart = false, $separator='&')
+    public function fetchProductCollection($items, $moveToCart = false, $separator = '&')
     {
         $productIds = collect(explode($separator, $items));
 
@@ -345,16 +323,16 @@ class Helper extends Review
             if ($productFlat) {
                 $formattedProduct = $this->formatProduct($productFlat, false, [
                     'moveToCart' => $moveToCart,
-                    'btnText' => $moveToCart ? trans('shop::app.customer.account.wishlist.move-to-cart') : null,
+                    'btnText'    => $moveToCart ? trans('shop::app.customer.account.wishlist.move-to-cart') : null,
                 ]);
 
                 return array_merge($productFlat->toArray(), [
-                    'slug' => $productFlat->url_key,
+                    'slug'          => $productFlat->url_key,
                     'product_image' => $formattedProduct['image'],
-                    'priceHTML' => $formattedProduct['priceHTML'],
-                    'new' => $formattedProduct['new'],
+                    'priceHTML'     => $formattedProduct['priceHTML'],
+                    'new'           => $formattedProduct['new'],
                     'addToCartHtml' => $formattedProduct['addToCartHtml'],
-                    'galleryImages' => $formattedProduct['galleryImages']
+                    'galleryImages' => $formattedProduct['galleryImages'],
                 ]);
             }
         })->toArray();

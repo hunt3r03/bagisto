@@ -13,14 +13,13 @@
 
             <div class="page-action">
                 <a href="{{ route('admin.roles.create') }}" class="btn btn-lg btn-primary">
-                    {{ __('Add Role') }}
+                    {{ __('admin::app.users.roles.add-role-title') }}
                 </a>
             </div>
         </div>
 
         <div class="page-content">
-            @inject('roles','Webkul\Admin\DataGrids\RolesDataGrid')
-            {!! $roles->render() !!}
+            <datagrid-plus src="{{ route('admin.roles.index') }}"></datagrid-plus>
         </div>
     </div>
 @stop

@@ -2,85 +2,72 @@
 
 namespace Webkul\Product\Type;
 
-use Webkul\Checkout\Models\CartItem;
-use Webkul\Product\Repositories\ProductRepository;
 use Webkul\Attribute\Repositories\AttributeRepository;
+use Webkul\Checkout\Models\CartItem;
 use Webkul\Product\Datatypes\CartItemValidationResult;
-use Webkul\Product\Repositories\ProductImageRepository;
-use Webkul\Product\Repositories\ProductVideoRepository;
-use Webkul\Product\Repositories\ProductInventoryRepository;
 use Webkul\Product\Repositories\ProductAttributeValueRepository;
 use Webkul\Product\Repositories\ProductDownloadableLinkRepository;
 use Webkul\Product\Repositories\ProductDownloadableSampleRepository;
+use Webkul\Product\Repositories\ProductImageRepository;
+use Webkul\Product\Repositories\ProductInventoryRepository;
+use Webkul\Product\Repositories\ProductRepository;
+use Webkul\Product\Repositories\ProductVideoRepository;
 
 class Downloadable extends AbstractType
 {
     /**
-     * ProductDownloadableLinkRepository instance
-     *
-     * @var \Webkul\Product\Repositories\ProductDownloadableLinkRepository
-     */
-    protected $productDownloadableLinkRepository;
-
-    /**
-     * ProductDownloadableSampleRepository instance
-     *
-     * @var \Webkul\Product\Repositories\ProductDownloadableSampleRepository
-     */
-    protected $productDownloadableSampleRepository;
-
-    /**
-     * Skip attribute for downloadable product type
+     * Skip attribute for downloadable product type.
      *
      * @var array
      */
-    protected $skipAttributes = ['width', 'height', 'depth', 'weight', 'guest_checkout'];
+    protected $skipAttributes = ['length', 'width', 'height', 'weight', 'depth', 'guest_checkout'];
 
     /**
-     * These blade files will be included in product edit page
+     * These blade files will be included in product edit page.
      *
      * @var array
      */
     protected $additionalViews = [
         'admin::catalog.products.accordians.images',
+        'admin::catalog.products.accordians.videos',
         'admin::catalog.products.accordians.categories',
         'admin::catalog.products.accordians.downloadable',
         'admin::catalog.products.accordians.channels',
         'admin::catalog.products.accordians.product-links',
-        'admin::catalog.products.accordians.videos',
     ];
 
     /**
-     * Is a stokable product type
+     * Is a stokable product type.
      *
      * @var bool
      */
     protected $isStockable = false;
 
     /**
-     * Show quantity box
+     * Show quantity box.
      *
      * @var bool
      */
     protected $allowMultipleQty = false;
 
     /**
-     * getProductOptions
+     * Get product options.
+     *
+     * @var array
      */
     protected $getProductOptions = [];
 
     /**
      * Create a new product type instance.
      *
-     * @param \Webkul\Attribute\Repositories\AttributeRepository               $attributeRepository
-     * @param \Webkul\Product\Repositories\ProductRepository                   $productRepository
-     * @param \Webkul\Product\Repositories\ProductAttributeValueRepository     $attributeValueRepository
-     * @param \Webkul\Product\Repositories\ProductInventoryRepository          $productInventoryRepository
-     * @param \Webkul\Product\Repositories\ProductImageRepository              $productImageRepository
-     * @param \Webkul\Product\Repositories\ProductDownloadableLinkRepository   $productDownloadableLinkRepository
-     * @param \Webkul\Product\Repositories\ProductDownloadableSampleRepository $productDownloadableSampleRepository
-     * @param \Webkul\Product\Repositories\ProductVideoRepository              $productVideoRepository
-     *
+     * @param \Webkul\Attribute\Repositories\AttributeRepository  $attributeRepository
+     * @param \Webkul\Product\Repositories\ProductRepository  $productRepository
+     * @param \Webkul\Product\Repositories\ProductAttributeValueRepository  $attributeValueRepository
+     * @param \Webkul\Product\Repositories\ProductInventoryRepository  $productInventoryRepository
+     * @param \Webkul\Product\Repositories\ProductImageRepository  $productImageRepository
+     * @param \Webkul\Product\Repositories\ProductDownloadableLinkRepository  $productDownloadableLinkRepository
+     * @param \Webkul\Product\Repositories\ProductDownloadableSampleRepository  $productDownloadableSampleRepository
+     * @param \Webkul\Product\Repositories\ProductVideoRepository  $productVideoRepository
      * @return void
      */
     public function __construct(
@@ -89,9 +76,9 @@ class Downloadable extends AbstractType
         ProductAttributeValueRepository $attributeValueRepository,
         ProductInventoryRepository $productInventoryRepository,
         productImageRepository $productImageRepository,
-        ProductDownloadableLinkRepository $productDownloadableLinkRepository,
-        ProductDownloadableSampleRepository $productDownloadableSampleRepository,
-        ProductVideoRepository $productVideoRepository
+        ProductVideoRepository $productVideoRepository,
+        protected ProductDownloadableLinkRepository $productDownloadableLinkRepository,
+        protected ProductDownloadableSampleRepository $productDownloadableSampleRepository
     )
     {
         parent::__construct(
@@ -102,20 +89,17 @@ class Downloadable extends AbstractType
             $productImageRepository,
             $productVideoRepository
         );
-
-        $this->productDownloadableLinkRepository = $productDownloadableLinkRepository;
-
-        $this->productDownloadableSampleRepository = $productDownloadableSampleRepository;
     }
 
     /**
-     * @param array  $data
-     * @param int    $id
-     * @param string $attribute
+     * Update.
      *
+     * @param  array  $data
+     * @param  int  $id
+     * @param  string  $attribute
      * @return \Webkul\Product\Contracts\Product
      */
-    public function update(array $data, $id, $attribute = "id")
+    public function update(array $data, $id, $attribute = 'id')
     {
         $product = parent::update($data, $id, $attribute);
         $route = request()->route() ? request()->route()->getName() : '';
@@ -130,7 +114,7 @@ class Downloadable extends AbstractType
     }
 
     /**
-     * Return true if this product type is saleable
+     * Return true if this product type is saleable.
      *
      * @return bool
      */
@@ -153,14 +137,13 @@ class Downloadable extends AbstractType
     }
 
     /**
-     * Returns validation rules
+     * Returns validation rules.
      *
      * @return array
      */
     public function getTypeValidationRules()
     {
         return [
-            // 'downloadable_links.*.title' => 'required',
             'downloadable_links.*.type'       => 'required',
             'downloadable_links.*.file'       => 'required_if:type,==,file',
             'downloadable_links.*.file_name'  => 'required_if:type,==,file',
@@ -173,8 +156,7 @@ class Downloadable extends AbstractType
     /**
      * Add product. Returns error message if can't prepare product.
      *
-     * @param array $data
-     *
+     * @param  array  $data
      * @return array
      */
     public function prepareForCart($data)
@@ -200,10 +182,10 @@ class Downloadable extends AbstractType
     }
 
     /**
+     * Compare options.
      *
-     * @param array $options1
-     * @param array $options2
-     *
+     * @param  array  $options1
+     * @param  array  $options2
      * @return bool
      */
     public function compareOptions($options1, $options2)
@@ -214,18 +196,21 @@ class Downloadable extends AbstractType
 
         if (isset($options1['links']) && isset($options2['links'])) {
             return $options1['links'] === $options2['links'];
-        } elseif (! isset($options1['links'])) {
+        }
+
+        if (! isset($options1['links'])) {
             return false;
-        } elseif (! isset($options2['links'])) {
+        }
+
+        if (! isset($options2['links'])) {
             return false;
         }
     }
 
     /**
-     * Returns additional information for items
+     * Returns additional information for items.
      *
-     * @param array $data
-     *
+     * @param  array  $data
      * @return array
      */
     public function getAdditionalOptions($data)
@@ -250,8 +235,7 @@ class Downloadable extends AbstractType
     /**
      * Validate cart item product price
      *
-     * @param \Webkul\Checkout\Models\CartItem $item
-     *
+     * @param  \Webkul\Checkout\Models\CartItem  $item
      * @return \Webkul\Product\Datatypes\CartItemValidationResult
      */
     public function validateCartItem(CartItem $item): CartItemValidationResult
@@ -274,6 +258,8 @@ class Downloadable extends AbstractType
             $price += $link->price;
         }
 
+        $price = round($price, 2);
+
         if ($price == $item->base_price) {
             return $result;
         }
@@ -290,7 +276,7 @@ class Downloadable extends AbstractType
     }
 
     /**
-     * Get product maximam price
+     * Get product maximum price
      *
      * @return float
      */

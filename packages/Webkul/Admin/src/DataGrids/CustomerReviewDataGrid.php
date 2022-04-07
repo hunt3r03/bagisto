@@ -7,25 +7,46 @@ use Webkul\Ui\DataGrid\DataGrid;
 
 class CustomerReviewDataGrid extends DataGrid
 {
+    /**
+     * Index.
+     *
+     * @var string
+     */
     protected $index = 'product_review_id';
 
+    /**
+     * Sort order.
+     *
+     * @var string
+     */
     protected $sortOrder = 'desc';
 
+    /**
+     * Prepare query builder.
+     *
+     * @return void
+     */
     public function prepareQueryBuilder()
     {
         $queryBuilder = DB::table('product_reviews as pr')
             ->leftjoin('product_flat as pf', 'pr.product_id', '=', 'pf.product_id')
-            ->select('pr.id as product_review_id', 'pr.title', 'pr.comment', 'pf.name as product_name', 'pr.status as product_review_status', 'pr.rating')
+            ->select('pr.id as product_review_id', 'pr.title', 'pr.comment', 'pf.name as product_name', 'pr.status as product_review_status', 'pr.rating', 'pr.created_at')
             ->where('channel', core()->getCurrentChannelCode())
             ->where('locale', app()->getLocale());
 
         $this->addFilter('product_review_id', 'pr.id');
         $this->addFilter('product_review_status', 'pr.status');
         $this->addFilter('product_name', 'pf.name');
+        $this->addFilter('created_at', 'pr.created_at');
 
         $this->setQueryBuilder($queryBuilder);
     }
 
+    /**
+     * Add columns.
+     *
+     * @return void
+     */
     public function addColumns()
     {
         $this->addColumn([
@@ -81,8 +102,7 @@ class CustomerReviewDataGrid extends DataGrid
             'sortable'   => true,
             'width'      => '100px',
             'filterable' => true,
-            'closure'    => true,
-            'wrapper'    => function ($value) {
+            'closure'    => function ($value) {
                 if ($value->product_review_status == 'approved') {
                     return '<span class="badge badge-md badge-success">' . trans('admin::app.datagrid.approved') . '</span>';
                 } elseif ($value->product_review_status == "pending") {
@@ -92,8 +112,22 @@ class CustomerReviewDataGrid extends DataGrid
                 }
             },
         ]);
+
+        $this->addColumn([
+            'index'      => 'created_at',
+            'label'      => trans('admin::app.datagrid.date'),
+            'type'       => 'datetime',
+            'sortable'   => true,
+            'searchable' => false,
+            'filterable' => true,
+        ]);
     }
 
+    /**
+     * Prepare actions.
+     *
+     * @return void
+     */
     public function prepareActions()
     {
         $this->addAction([
@@ -111,6 +145,11 @@ class CustomerReviewDataGrid extends DataGrid
         ]);
     }
 
+    /**
+     * Prepare mass actions.
+     *
+     * @return void
+     */
     public function prepareMassActions()
     {
         $this->addMassAction([

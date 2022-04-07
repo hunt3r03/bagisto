@@ -2,46 +2,80 @@
 
 namespace Webkul\Admin\DataGrids;
 
-use Webkul\Core\Models\Locale;
-use Webkul\Core\Models\Channel;
-use Webkul\Ui\DataGrid\DataGrid;
 use Illuminate\Support\Facades\DB;
+use Webkul\Core\Models\Channel;
+use Webkul\Core\Models\Locale;
+use Webkul\Ui\DataGrid\DataGrid;
 
 class ProductDataGrid extends DataGrid
 {
+    /**
+     * Default sort order of datagrid.
+     *
+     * @var string
+     */
     protected $sortOrder = 'desc';
 
+    /**
+     * Set index columns, ex: id.
+     *
+     * @var string
+     */
     protected $index = 'product_id';
 
+    /**
+     * If paginated then value of pagination.
+     *
+     * @var int
+     */
     protected $itemsPerPage = 10;
 
+    /**
+     * Locale.
+     *
+     * @var string
+     */
     protected $locale = 'all';
 
+    /**
+     * Channel.
+     *
+     * @var string
+     */
     protected $channel = 'all';
 
-    /** @var string[] contains the keys for which extra filters to render */
+    /**
+     * Contains the keys for which extra filters to show.
+     *
+     * @var string[]
+     */
     protected $extraFilters = [
         'channels',
         'locales',
     ];
 
+    /**
+     * Create datagrid instance.
+     *
+     * @return void
+     */
     public function __construct()
     {
-        parent::__construct();
-
         /* locale */
-        $this->locale = request()->get('locale') ?? app()->getLocale();
+        $this->locale = core()->getRequestedLocaleCode();
 
         /* channel */
-        $this->channel = request()->get('channel') ?? (core()->getCurrentChannelCode() ?: core()->getDefaultChannelCode());
+        $this->channel = core()->getRequestedChannelCode();
 
-        /* finding channel code */
-        if ($this->channel !== 'all') {
-            $this->channel = Channel::query()->find($this->channel);
-            $this->channel = $this->channel ? $this->channel->code : 'all';
-        }
+        /* parent constructor */
+        parent::__construct();
     }
 
+    /**
+     * Prepare query builder.
+     *
+     * @return void
+     */
     public function prepareQueryBuilder()
     {
         if ($this->channel === 'all') {
@@ -71,8 +105,9 @@ class ProductDataGrid extends DataGrid
                 'products.type as product_type',
                 'product_flat.status',
                 'product_flat.price',
+                'product_flat.url_key',
                 'attribute_families.name as attribute_family',
-                DB::raw('SUM(DISTINCT ' . DB::getTablePrefix() . 'product_inventories.qty) as quantity')
+                DB::raw('SUM(' . DB::getTablePrefix() . 'product_inventories.qty) as quantity')
             );
 
         $queryBuilder->groupBy('product_flat.product_id', 'product_flat.locale', 'product_flat.channel');
@@ -91,6 +126,11 @@ class ProductDataGrid extends DataGrid
         $this->setQueryBuilder($queryBuilder);
     }
 
+    /**
+     * Add columns.
+     *
+     * @return void
+     */
     public function addColumns()
     {
         $this->addColumn([
@@ -127,6 +167,13 @@ class ProductDataGrid extends DataGrid
             'searchable' => true,
             'sortable'   => true,
             'filterable' => true,
+            'closure'    => function ($row) {
+                if (! empty($row->url_key)) {
+                    return "<a href='" . route('shop.productOrCategory.index', $row->url_key) . "' target='_blank'>" . $row->product_name . "</a>";
+                }
+
+                return $row->product_name;
+            },
         ]);
 
         $this->addColumn([
@@ -154,12 +201,16 @@ class ProductDataGrid extends DataGrid
             'sortable'   => true,
             'searchable' => false,
             'filterable' => true,
-            'wrapper'    => function ($value) {
+            'closure'    => function ($value) {
+                $html = '';
+
                 if ($value->status == 1) {
-                    return trans('admin::app.datagrid.active');
+                    $html .= '<span class="badge badge-md badge-success">' . trans('admin::app.datagrid.active') . '</span>';
                 } else {
-                    return trans('admin::app.datagrid.inactive');
+                    $html .= '<span class="badge badge-md badge-danger">' . trans('admin::app.datagrid.inactive') . '</span>';
                 }
+
+                return $html;
             },
         ]);
 
@@ -179,16 +230,21 @@ class ProductDataGrid extends DataGrid
             'sortable'   => true,
             'searchable' => false,
             'filterable' => false,
-            'wrapper'    => function ($value) {
-                if (is_null($value->quantity)) {
+            'closure'    => function ($row) {
+                if (is_null($row->quantity)) {
                     return 0;
                 } else {
-                    return $value->quantity;
+                    return $this->renderQuantityView($row);
                 }
             },
         ]);
     }
 
+    /**
+     * Prepare actions.
+     *
+     * @return void
+     */
     public function prepareActions()
     {
         $this->addAction([
@@ -208,17 +264,22 @@ class ProductDataGrid extends DataGrid
             'confirm_text' => trans('ui::app.datagrid.massaction.delete', ['resource' => 'product']),
             'icon'         => 'icon trash-icon',
         ]);
-    }
 
-    public function prepareMassActions()
-    {
         $this->addAction([
             'title'  => trans('admin::app.datagrid.copy'),
             'method' => 'GET',
             'route'  => 'admin.catalog.products.copy',
             'icon'   => 'icon copy-icon',
         ]);
+    }
 
+    /**
+     * Prepare mass actions.
+     *
+     * @return void
+     */
+    public function prepareMassActions()
+    {
         $this->addMassAction([
             'type'   => 'delete',
             'label'  => trans('admin::app.datagrid.delete'),
@@ -232,9 +293,26 @@ class ProductDataGrid extends DataGrid
             'action'  => route('admin.catalog.products.massupdate'),
             'method'  => 'POST',
             'options' => [
-                'Active'   => 1,
-                'Inactive' => 0,
+                trans('admin::app.datagrid.active')    => 1,
+                trans('admin::app.datagrid.inactive')  => 0,
             ],
         ]);
+    }
+
+    /**
+     * Render quantity view.
+     *
+     * @param  object  $row
+     * @return \Illuminate\Contracts\View\View|\Illuminate\Contracts\View\Factory
+     */
+    private function renderQuantityView($row)
+    {
+        $product = app(\Webkul\Product\Repositories\ProductRepository::class)->find($row->product_id);
+
+        $inventorySources = app(\Webkul\Inventory\Repositories\InventorySourceRepository::class)->findWhere(['status' => 1]);
+
+        $totalQuantity = $row->quantity;
+
+        return view('admin::catalog.products.datagrid.quantity', compact('product', 'inventorySources', 'totalQuantity'))->render();
     }
 }

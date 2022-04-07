@@ -2,29 +2,15 @@
 
 namespace Webkul\Shop\Http\Controllers;
 
+use Cart;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
+use Webkul\Checkout\Contracts\Cart as CartModel;
 use Webkul\Customer\Repositories\WishlistRepository;
 use Webkul\Product\Repositories\ProductRepository;
-use Webkul\Checkout\Contracts\Cart as CartModel;
-use Illuminate\Support\Facades\Event;
-use Cart;
 
 class CartController extends Controller
 {
-    /**
-     * WishlistRepository Repository object
-     *
-     * @var \Webkul\Customer\Repositories\WishlistRepository
-     */
-    protected $wishlistRepository;
-
-    /**
-     * ProductRepository object
-     *
-     * @var \Webkul\Product\Repositories\ProductRepository
-     */
-    protected $productRepository;
-
     /**
      * Create a new controller instance.
      *
@@ -33,15 +19,13 @@ class CartController extends Controller
      * @return void
      */
     public function __construct(
-        WishlistRepository $wishlistRepository,
-        ProductRepository $productRepository
+        protected WishlistRepository $wishlistRepository,
+        protected ProductRepository $productRepository
     )
     {
-        $this->middleware('customer')->only(['moveToWishlist']);
+        $this->middleware('throttle:5,1')->only('applyCoupon');
 
-        $this->wishlistRepository = $wishlistRepository;
-
-        $this->productRepository = $productRepository;
+        $this->middleware('customer')->only('moveToWishlist');
 
         parent::__construct();
     }
@@ -67,6 +51,8 @@ class CartController extends Controller
     public function add($id)
     {
         try {
+            Cart::deactivateCurrentCartIfBuyNowIsActive();
+
             $result = Cart::addProduct($id, request()->all());
 
             if ($this->onFailureAddingToCart($result)) {
@@ -86,13 +72,15 @@ class CartController extends Controller
                     return redirect()->route('shop.checkout.onepage.index');
                 }
             }
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             session()->flash('warning', __($e->getMessage()));
 
             $product = $this->productRepository->find($id);
 
-            Log::error('Shop CartController: ' . $e->getMessage(),
-                ['product_id' => $id, 'cart_id' => cart()->getCart() ?? 0]);
+            Log::error(
+                'Shop CartController: ' . $e->getMessage(),
+                ['product_id' => $id, 'cart_id' => cart()->getCart() ?? 0]
+            );
 
             return redirect()->route('shop.productOrCategory.index', $product->url_key);
         }
@@ -101,7 +89,7 @@ class CartController extends Controller
     }
 
     /**
-     * Removes the item from the cart if it exists
+     * Removes the item from the cart if it exists.
      *
      * @param  int  $itemId
      * @return \Illuminate\Http\Response
@@ -130,7 +118,7 @@ class CartController extends Controller
             if ($result) {
                 session()->flash('success', trans('shop::app.checkout.cart.quantity.success'));
             }
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             session()->flash('error', trans($e->getMessage()));
         }
 
@@ -141,7 +129,7 @@ class CartController extends Controller
      * Function to move a already added product to wishlist will run only on customer authentication.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return mixed
      */
     public function moveToWishlist($id)
     {
@@ -153,14 +141,16 @@ class CartController extends Controller
             session()->flash('warning', trans('shop::app.checkout.cart.move-to-wishlist-error'));
         }
 
-        return redirect()->back();
+        return request()->get('redirect') !== false
+            ? redirect()->back()
+            : response()->json([]);
     }
 
     /**
-     * Apply coupon to the cart
+     * Apply coupon to the cart.
      *
      * @return \Illuminate\Http\Response
-    */
+     */
     public function applyCoupon()
     {
         $couponCode = request()->get('code');
@@ -192,10 +182,10 @@ class CartController extends Controller
     }
 
     /**
-     * Apply coupon to the cart
+     * Remove applied coupon from the cart.
      *
      * @return \Illuminate\Http\Response
-    */
+     */
     public function removeCoupon()
     {
         Cart::removeCouponCode()->collectTotals();
@@ -208,10 +198,9 @@ class CartController extends Controller
 
     /**
      * Returns true, if result of adding product to cart
-     * is an array and contains a key "warning" or "info"
+     * is an array and contains a key "warning" or "info".
      *
      * @param  array  $result
-     *
      * @return boolean
      */
     private function onFailureAddingToCart($result): bool

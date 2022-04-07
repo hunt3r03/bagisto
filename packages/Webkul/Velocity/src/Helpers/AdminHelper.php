@@ -8,38 +8,18 @@ use Webkul\Category\Repositories\CategoryRepository;
 class AdminHelper
 {
     /**
-     * CategoryRepository object
-     *
-     * @var \Webkul\Category\Repositories\CategoryRepository
-     */
-    protected $categoryRepository;
-
-    /**
      * Create a new helper instance.
      *
      * @param  \Webkul\Category\Repositories\CategoryRepository  $categoryRepository
      * @return void
      */
-    public function __construct(CategoryRepository $categoryRepository)
+    public function __construct(protected CategoryRepository $categoryRepository)
     {
-        $this->categoryRepository =  $categoryRepository;
     }
 
     /**
-     * @param  string  $locale
-     * @return string
-     */
-    public function saveLocaleImg($locale)
-    {
-        $data = request()->all();
-        $type = 'locale_image';
-
-        $locale = $this->uploadImage($locale, $data, $type);
-
-        return $locale;
-    }
-
-    /**
+     * Store cateogry icon.
+     *
      * @param  \Webkul\Category\Contracts\Category  $category
      * @return \Webkul\Category\Contracts\Category
      */
@@ -57,24 +37,30 @@ class AdminHelper
     }
 
     /**
+     * Store slider details.
+     *
      * @param  \Webkul\Core\Contracts\Slider  $slider
      * @return bool
      */
     public function storeSliderDetails($slider)
     {
         $slider->slider_path = request()->get('slider_path');
+
         $slider->save();
 
         return true;
     }
 
     /**
+     * Upload image.
+     *
      * @param  \Illuminate\Database\Eloquent\Model  $slider
      * @param  array  $data
      * @param  string  $type
      * @return \Illuminate\Database\Eloquent\Model
      */
-    public function uploadImage($model, $data, $type) {
+    public function uploadImage($model, $data, $type)
+    {
         if (isset($data[$type])) {
             $request = request();
 

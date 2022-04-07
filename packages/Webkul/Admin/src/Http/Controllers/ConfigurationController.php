@@ -2,31 +2,24 @@
 
 namespace Webkul\Admin\Http\Controllers;
 
-use Illuminate\Support\Facades\Event;
-use Webkul\Core\Repositories\CoreConfigRepository;
-use Webkul\Core\Tree;
 use Illuminate\Support\Facades\Storage;
 use Webkul\Admin\Http\Requests\ConfigurationForm;
+use Webkul\Core\Repositories\CoreConfigRepository;
+use Webkul\Core\Tree;
 
 class ConfigurationController extends Controller
 {
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @var \Illuminate\Http\Response
      */
     protected $_config;
 
     /**
-     * CoreConfigRepository object
+     * Tree instance.
      *
-     * @var \Webkul\Core\Repositories\CoreConfigRepository
-     */
-    protected $coreConfigRepository;
-
-    /**
-     *
-     * @var array
+     * @var \Webkul\Core\Tree
      */
     protected $configTree;
 
@@ -36,19 +29,15 @@ class ConfigurationController extends Controller
      * @param  \Webkul\Core\Repositories\CoreConfigRepository  $coreConfigRepository
      * @return void
      */
-    public function __construct(CoreConfigRepository $coreConfigRepository)
+    public function __construct(protected CoreConfigRepository $coreConfigRepository)
     {
-        $this->middleware('admin');
-
-        $this->coreConfigRepository = $coreConfigRepository;
-
         $this->_config = request('_config');
 
         $this->prepareConfigTree();
     }
 
     /**
-     * Prepares config tree
+     * Prepares config tree.
      *
      * @return void
      */
@@ -82,7 +71,7 @@ class ConfigurationController extends Controller
     }
 
     /**
-     * Returns slugs
+     * Returns slugs.
      *
      * @return array
      */
@@ -112,11 +101,7 @@ class ConfigurationController extends Controller
      */
     public function store(ConfigurationForm $request)
     {
-        Event::dispatch('core.configuration.save.before');
-
-        $this->coreConfigRepository->create(request()->all());
-
-        Event::dispatch('core.configuration.save.after');
+        $this->coreConfigRepository->create($request->except(['_token', 'admin_locale']));
 
         session()->flash('success', trans('admin::app.configuration.save-message'));
 
@@ -124,7 +109,7 @@ class ConfigurationController extends Controller
     }
 
     /**
-     * download the file for the specified resource.
+     * Download the file for the specified resource.
      *
      * @return \Illuminate\Http\Response
      */
@@ -132,7 +117,7 @@ class ConfigurationController extends Controller
     {
         $path = request()->route()->parameters()['path'];
 
-        $fileName = 'configuration/'. $path;
+        $fileName = 'configuration/' . $path;
 
         $config = $this->coreConfigRepository->findOneByField('value', $fileName);
 
@@ -140,6 +125,8 @@ class ConfigurationController extends Controller
     }
 
     /**
+     * Get slugs.
+     *
      * @param  string  $secondItem
      * @return array
      */

@@ -6,7 +6,7 @@
 @push('scripts')
     <script type="text/x-template" id="catalog-product-template">
         <div>
-            <?php $catalogType =  old($locale)['catalog_type'] ?? (isset($content) ? $content->translate($locale) ? $content->translate($locale)['catalog_type'] : '' : ''); ?>
+            <?php $catalogType =  old($locale)['catalog_type'] ?? (isset($content) ? ($content->translate($locale) ? $content->translate($locale)['catalog_type'] : '') : ''); ?>
 
             <div class="control-group" :class="[errors.has('{{$locale}}[catalog_type]') ? 'has-error' : '']">
                 <label for="catalog_type" class="required">
@@ -20,7 +20,7 @@
                     @endforeach
                 </select>
 
-                <span class="control-error" v-if="errors.has('{{$locale}}[catalog_type]')">@{{ errors.first('{!!$locale!!}[catalog_type]') }}</span>
+                <span class="control-error" v-if="errors.has('{{$locale}}[catalog_type]')" v-text="errors.first('{!!$locale!!}[catalog_type]')"></span>
             </div>
 
             <div v-if="catalog_type == 'custom'">

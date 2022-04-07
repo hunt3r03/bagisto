@@ -2,44 +2,39 @@
 
 namespace Webkul\Shop\Http\Middleware;
 
-use Webkul\Core\Repositories\LocaleRepository;
 use Closure;
+use Webkul\Core\Repositories\LocaleRepository;
 
 class Locale
 {
     /**
-     * @var LocaleRepository
+     * Create a middleware instance.
+     *
+     * @param  \Webkul\Core\Repositories\LocaleRepository  $localeRepository
+     * @return void
      */
-    protected $locale;
-
-    /**
-     * @param \Webkul\Core\Repositories\LocaleRepository $locale
-     */
-    public function __construct(LocaleRepository $locale)
+    public function __construct(protected LocaleRepository $localeRepository)
     {
-        $this->locale = $locale;
     }
 
     /**
-    * Handle an incoming request.
-    *
-    * @param  \Illuminate\Http\Request  $request
-    * @param  \Closure  $next
-    * @return mixed
-    */
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return mixed
+     */
     public function handle($request, Closure $next)
     {
-        $locale = request()->get('locale');
+        if ($localeCode = core()->getRequestedLocaleCode('locale', false)) {
+            if ($this->localeRepository->findOneByField('code', $localeCode)) {
+                app()->setLocale($localeCode);
 
-        if ($locale) {
-            if ($this->locale->findOneByField('code', $locale)) {
-                app()->setLocale($locale);
-
-                session()->put('locale', $locale);
+                session()->put('locale', $localeCode);
             }
         } else {
-            if ($locale = session()->get('locale')) {
-                app()->setLocale($locale);
+            if ($localeCode = session()->get('locale')) {
+                app()->setLocale($localeCode);
             } else {
                 app()->setLocale(core()->getDefaultChannel()->default_locale->code);
             }

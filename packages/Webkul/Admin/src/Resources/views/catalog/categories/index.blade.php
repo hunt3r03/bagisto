@@ -1,3 +1,7 @@
+@php
+$locale = core()->getRequestedLocaleCode();
+@endphp
+
 @extends('admin::layouts.content')
 
 @section('page_title')
@@ -12,7 +16,10 @@
             </div>
 
             <div class="page-action">
-                <a href="{{ route('admin.catalog.categories.create') }}" class="btn btn-lg btn-primary">
+                <a
+                    href="{{ route('admin.catalog.categories.create') }}"
+                    class="btn btn-lg btn-primary"
+                >
                     {{ __('admin::app.catalog.categories.add-title') }}
                 </a>
             </div>
@@ -21,7 +28,7 @@
         {!! view_render_event('bagisto.admin.catalog.categories.list.before') !!}
 
         <div class="page-content">
-            {!! app('Webkul\Admin\DataGrids\CategoryDataGrid')->render() !!}
+            <datagrid-plus src="{{ route('admin.catalog.categories.index') }}"></datagrid-plus>
         </div>
 
         {!! view_render_event('bagisto.admin.catalog.categories.list.after') !!}
@@ -30,47 +37,55 @@
 
 @push('scripts')
     <script>
-        $(document).ready(function(){
-            $("input[type='checkbox']").change(deleteFunction);
+        $(document).ready(function() {
+            $("input[type='checkbox']").change(deleteCategory);
         });
 
-        var deleteFunction = function(e,type) {
+        /**
+         * Delete category function. This function name is present in category datagrid.
+         * So outside scope function should be loaded `onclick` rather than `v-on`.
+         */
+        let deleteCategory = function(e, type) {
+            let indexes;
+
             if (type == 'delete') {
-                var indexes = $(e.target).parent().attr('id');
+                indexes = $(e.target).parent().attr('id');
             } else {
                 $("input[type='checkbox']").attr('disabled', true);
 
-                var formData = {};
+                let formData = {};
                 $.each($('form').serializeArray(), function(i, field) {
                     formData[field.name] = field.value;
                 });
 
-                var indexes = formData.indexes;
+                indexes = formData.indexes;
             }
-            
+
             if (indexes) {
                 $.ajax({
-                    type : 'POST',
-                    url : '{{route("admin.catalog.categories.product.count")}}',
-                    data : {
-                        _token: '{{csrf_token()}}',
+                    type: 'POST',
+                    url: '{{ route('admin.catalog.categories.product.count') }}',
+                    data: {
+                        _token: '{{ csrf_token() }}',
                         indexes: indexes
                     },
-                    success:function(data) {
+                    success: function(data) {
                         $("input[type='checkbox']").attr('disabled', false);
                         if (data.product_count > 0) {
-                            var message = "{{trans('ui::app.datagrid.massaction.delete-category-product')}}";
+                            let message = "{{ trans('ui::app.datagrid.massaction.delete-category-product') }}";
+
                             if (type == 'delete') {
                                 doAction(e, message);
                             } else {
-                                $('form').attr('onsubmit', 'return confirm("'+message+'")');
+                                $('form').attr('onsubmit', 'return confirm("' + message + '")');
                             }
                         } else {
-                            var message = "{{ __('ui::app.datagrid.click_on_action') }}";
+                            let message = "{{ __('ui::app.datagrid.click_on_action') }}";
+
                             if (type == 'delete') {
                                 doAction(e, message);
                             } else {
-                                $('form').attr('onsubmit', 'return confirm("'+message+'")');
+                                $('form').attr('onsubmit', 'return confirm("' + message + '")');
                             }
                         }
                     }
@@ -78,6 +93,17 @@
             } else {
                 $("input[type='checkbox']").attr('disabled', false);
             }
+        }
+
+        /**
+         * Reload page.
+         */
+        function reloadPage(getVar, getVal) {
+            let url = new URL(window.location.href);
+
+            url.searchParams.set(getVar, getVal);
+
+            window.location.href = url.href;
         }
     </script>
 @endpush

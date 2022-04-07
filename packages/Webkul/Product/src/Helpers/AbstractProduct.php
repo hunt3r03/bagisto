@@ -2,7 +2,6 @@
 
 namespace Webkul\Product\Helpers;
 
-use Webkul\Product\Models\ProductAttributeValue;
 use Webkul\Product\Models\ProductFlatProxy;
 use Webkul\Product\Models\ProductFlat;
 
@@ -25,9 +24,9 @@ abstract class AbstractProduct
      */
     public function applyChannelLocaleFilter($attribute, $qb, $alias = 'product_attribute_values')
     {
-        $channel = request()->get('channel') ?: (core()->getCurrentChannelCode() ?: core()->getDefaultChannelCode());
+        $channel = core()->getRequestedChannelCode();
 
-        $locale = request()->get('locale') ?: app()->getLocale();
+        $locale = core()->getRequestedLocaleCode();
 
         if ($attribute->value_per_channel) {
             if ($attribute->value_per_locale) {

@@ -2,31 +2,17 @@
 
 namespace Webkul\Sales\Repositories;
 
-use Webkul\Sales\Contracts\Order;
+use Illuminate\Container\Container as App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Webkul\Core\Eloquent\Repository;
-use Illuminate\Support\Facades\Event;
-use Webkul\Shop\Generators\Sequencer;
-use Illuminate\Container\Container as App;
-use Webkul\Shop\Generators\OrderNumberIdSequencer;
+use Webkul\Sales\Contracts\Order;
+use Webkul\Sales\Generators\OrderSequencer;
+use Webkul\Sales\Models\Order as OrderModel;
 
 class OrderRepository extends Repository
 {
-    /**
-     * OrderItemRepository $orderItemRepository
-     *
-     * @var \Webkul\Sales\Repositories\OrderItemRepository
-     */
-    protected $orderItemRepository;
-
-    /**
-     * DownloadableLinkPurchasedRepository $downloadableLinkPurchasedRepository
-     *
-     * @var \Webkul\Sales\Repositories\DownloadableLinkPurchasedRepository
-     */
-    protected $downloadableLinkPurchasedRepository;
-
     /**
      * Create a new repository instance.
      *
@@ -36,14 +22,11 @@ class OrderRepository extends Repository
      * @return void
      */
     public function __construct(
-        OrderItemRepository $orderItemRepository,
-        DownloadableLinkPurchasedRepository $downloadableLinkPurchasedRepository,
+        protected OrderItemRepository $orderItemRepository,
+        protected DownloadableLinkPurchasedRepository $downloadableLinkPurchasedRepository,
         App $app
-    ) {
-        $this->orderItemRepository = $orderItemRepository;
-
-        $this->downloadableLinkPurchasedRepository = $downloadableLinkPurchasedRepository;
-
+    )
+    {
         parent::__construct($app);
     }
 
@@ -120,8 +103,10 @@ class OrderRepository extends Repository
             DB::rollBack();
 
             /* storing log for errors */
-            Log::error('OrderRepository:createOrderIfNotThenRetry: ' . $e->getMessage(),
-            ['data' => $data]);
+            Log::error(
+                'OrderRepository:createOrderIfNotThenRetry: ' . $e->getMessage(),
+                ['data' => $data]
+            );
 
             /* recalling */
             $this->createOrderIfNotThenRetry($data);
@@ -213,19 +198,7 @@ class OrderRepository extends Repository
      */
     public function generateIncrementId()
     {
-        /**
-         * @var $generatorClass Sequencer
-         */
-        $generatorClass = core()->getConfigData('sales.orderSettings.order_number.order_number_generator-class') ?: false;
-
-        if ($generatorClass !== false
-            && class_exists($generatorClass)
-            && in_array(Sequencer::class, class_implements($generatorClass), true)
-        ) {
-            return $generatorClass::generate();
-        }
-
-        return OrderNumberIdSequencer::generate();
+        return app(OrderSequencer::class)->resolveGeneratorClass();
     }
 
     /**
@@ -252,9 +225,19 @@ class OrderRepository extends Repository
             $totalQtyCanceled += $item->qty_canceled;
         }
 
-        if ($totalQtyOrdered != ($totalQtyRefunded + $totalQtyCanceled)
+        if (
+            $totalQtyOrdered != ($totalQtyRefunded + $totalQtyCanceled)
             && $totalQtyOrdered == $totalQtyInvoiced + $totalQtyCanceled
-            && $totalQtyOrdered == $totalQtyShipped + $totalQtyRefunded + $totalQtyCanceled) {
+            && $totalQtyOrdered == $totalQtyShipped + $totalQtyRefunded + $totalQtyCanceled
+        ) {
+            return true;
+        }
+
+        /**
+         * If order is already completed and total quantity ordered is not equal to refunded
+         * then it can be considered as completed.
+         */
+        if ($order->status === OrderModel::STATUS_COMPLETED && $totalQtyOrdered != $totalQtyRefunded) {
             return true;
         }
 
@@ -302,24 +285,33 @@ class OrderRepository extends Repository
      * Update order status.
      *
      * @param  \Webkul\Sales\Contracts\Order  $order
+     * @param  string $orderState
      * @return void
      */
-    public function updateOrderStatus($order)
+    public function updateOrderStatus($order, $orderState = null)
     {
-        $status = 'processing';
+        Event::dispatch('sales.order.update-status.before', $order);
 
-        if ($this->isInCompletedState($order)) {
-            $status = 'completed';
-        }
+        if (! empty($orderState)) {
+            $status = $orderState;
+        } else {
+            $status = "processing";
 
-        if ($this->isInCanceledState($order)) {
-            $status = 'canceled';
-        } elseif ($this->isInClosedState($order)) {
-            $status = 'closed';
+            if ($this->isInCompletedState($order)) {
+                $status = 'completed';
+            }
+
+            if ($this->isInCanceledState($order)) {
+                $status = 'canceled';
+            } elseif ($this->isInClosedState($order)) {
+                $status = 'closed';
+            }
         }
 
         $order->status = $status;
         $order->save();
+
+        Event::dispatch('sales.order.update-status.after', $order);
     }
 
     /**
@@ -393,7 +385,7 @@ class OrderRepository extends Repository
      */
     private function resolveOrderInstance($orderOrId)
     {
-        return $orderOrId instanceof \Webkul\Sales\Models\Order
+        return $orderOrId instanceof OrderModel
             ? $orderOrId
             : $this->findOrFail($orderOrId);
     }

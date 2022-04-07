@@ -14,7 +14,7 @@ class CartController extends Controller
      * Retrives the mini cart details
      *
      * @return \Illuminate\Http\Response
-    */
+     */
     public function getMiniCartDetails()
     {
         $cart = cart()->getCart();
@@ -24,6 +24,7 @@ class CartController extends Controller
             $cartItems = $items->toArray();
 
             $cartDetails = [];
+            $cartDetails['base_grand_total'] = core()->currency($cart->base_grand_total);
             $cartDetails['base_sub_total'] = core()->currency($cart->base_sub_total);
 
             /* needed raw data for comparison */
@@ -35,6 +36,7 @@ class CartController extends Controller
                 $cartItems[$index]['images'] = $images;
                 $cartItems[$index]['url_key'] = $item->product->url_key;
                 $cartItems[$index]['base_total'] = core()->currency($item->base_total);
+                $cartItems[$index]['base_total_with_tax'] = core()->currency($item->base_total + $item->tax_amount);
             }
 
             $response = [
@@ -50,14 +52,14 @@ class CartController extends Controller
             ];
         }
 
-        return response()->json($response, 200);
+        return response()->json($response);
     }
 
     /**
      * Function for guests user to add the product in the cart.
      *
      * @return array
-    */
+     */
     public function addProductToCart()
     {
         try {
@@ -121,7 +123,7 @@ class CartController extends Controller
      *
      * @param  int  $itemId
      * @return \Illuminate\Http\Response
-    */
+     */
     public function removeProductFromCart($itemId)
     {
         $result = Cart::removeItem($itemId);
@@ -138,6 +140,6 @@ class CartController extends Controller
             'status'  => 'danger',
             'label'   => trans('velocity::app.shop.general.alert.error'),
             'message' => trans('velocity::app.error.something_went_wrong'),
-        ], 200);
+        ]);
     }
 }

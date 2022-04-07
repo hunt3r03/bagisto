@@ -5,11 +5,12 @@
 @stop
 
 @section('content')
-
     <div class="content">
+        @php
+            $locale = core()->getRequestedLocaleCode('locale', false);
 
-      <?php $locale = request()->get('locale') ?: null; ?>
-      <?php $channel = request()->get('channel') ?: null; ?>
+            $channel = core()->getRequestedChannelCode(false);
+        @endphp
 
         <div class="page-header">
             <div class="page-title">
@@ -24,22 +25,19 @@
         </div>
 
         <div class="page-content">
-            @inject('sliders','Webkul\Admin\DataGrids\SliderDataGrid')
-            {!! $sliders->render() !!}
+            <datagrid-plus src="{{ route('admin.sliders.index') }}"></datagrid-plus>
         </div>
     </div>
 @stop
 
-
 @push('scripts')
     <script>
-
         function reloadPage(getVar, getVal) {
             let url = new URL(window.location.href);
+
             url.searchParams.set(getVar, getVal);
 
             window.location.href = url.href;
         }
-
     </script>
 @endpush

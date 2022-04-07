@@ -2,31 +2,18 @@
 
 namespace Webkul\Attribute\Http\Controllers;
 
+use Webkul\Admin\DataGrids\AttributeFamilyDataGrid;
 use Webkul\Attribute\Repositories\AttributeFamilyRepository;
 use Webkul\Attribute\Repositories\AttributeRepository;
 
 class AttributeFamilyController extends Controller
 {
     /**
-     * Contains route related configuration
+     * Contains route related configuration.
      *
      * @var array
      */
     protected $_config;
-
-    /**
-     * AttributeFamilyRepository object
-     *
-     * @var \Webkul\Attribute\Repositories\AttributeFamilyRepository
-     */
-    protected $attributeFamilyRepository;
-
-    /**
-     * AttributeRepository object
-     *
-     * @var \Webkul\Attribute\Repositories\AttributeRepository
-     */
-    protected $attributeRepository;
 
     /**
      * Create a new controller instance.
@@ -36,14 +23,10 @@ class AttributeFamilyController extends Controller
      * @return void
      */
     public function __construct(
-        AttributeFamilyRepository $attributeFamilyRepository,
-        AttributeRepository $attributeRepository
+        protected AttributeFamilyRepository $attributeFamilyRepository,
+        protected AttributeRepository $attributeRepository
     )
     {
-        $this->attributeFamilyRepository = $attributeFamilyRepository;
-
-        $this->attributeRepository = $attributeRepository;
-
         $this->_config = request('_config');
     }
 
@@ -54,6 +37,10 @@ class AttributeFamilyController extends Controller
      */
     public function index()
     {
+        if (request()->ajax()) {
+            return app(AttributeFamilyDataGrid::class)->toJson();
+        }
+
         return view($this->_config['view']);
     }
 
@@ -136,28 +123,34 @@ class AttributeFamilyController extends Controller
         $attributeFamily = $this->attributeFamilyRepository->findOrFail($id);
 
         if ($this->attributeFamilyRepository->count() == 1) {
-            session()->flash('error', trans('admin::app.response.last-delete-error', ['name' => 'Family']));
-
-        } elseif ($attributeFamily->products()->count()) {
-            session()->flash('error', trans('admin::app.response.attribute-product-error', ['name' => 'Attribute family']));
-        } else {
-            try {
-                $this->attributeFamilyRepository->delete($id);
-
-                session()->flash('success', trans('admin::app.response.delete-success', ['name' => 'Family']));
-
-                return response()->json(['message' => true], 200);
-            } catch (\Exception $e) {
-                report($e);
-                session()->flash('error', trans('admin::app.response.delete-failed', ['name' => 'Family']));
-            }
+            return response()->json([
+                'message' => trans('admin::app.response.last-delete-error', ['name' => 'Family']),
+            ], 400);
         }
 
-        return response()->json(['message' => false], 400);
+        if ($attributeFamily->products()->count()) {
+            return response()->json([
+                'message' => trans('admin::app.response.attribute-product-error', ['name' => 'Attribute family']),
+            ], 400);
+        }
+
+        try {
+            $this->attributeFamilyRepository->delete($id);
+
+            return response()->json([
+                'message' => trans('admin::app.response.delete-success', ['name' => 'Family']),
+            ]);
+        } catch (\Exception $e) {
+            report($e);
+        }
+
+        return response()->json([
+            'message' => trans('admin::app.response.delete-failed', ['name' => 'Family']),
+        ], 500);
     }
 
     /**
-     * Remove the specified resources from database
+     * Remove the specified resources from database.
      *
      * @return \Illuminate\Http\Response
      */

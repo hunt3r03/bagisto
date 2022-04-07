@@ -3,41 +3,13 @@
 namespace Webkul\Sales\Repositories;
 
 use Illuminate\Container\Container as App;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\DB;
-use Webkul\Sales\Contracts\Refund;
+use Illuminate\Support\Facades\Event;
 use Webkul\Core\Eloquent\Repository;
+use Webkul\Sales\Contracts\Refund;
 
 class RefundRepository extends Repository
 {
-    /**
-     * OrderRepository object
-     *
-     * @var \Webkul\Sales\Repositories\OrderRepository
-     */
-    protected $orderRepository;
-
-    /**
-     * OrderItemRepository object
-     *
-     * @var \Webkul\Sales\Repositories\OrderItemRepository
-     */
-    protected $orderItemRepository;
-
-    /**
-     * RefundItemRepository object
-     *
-     * @var \Webkul\Sales\Repositories\RefundItemRepository
-     */
-    protected $refundItemRepository;
-
-    /**
-     * DownloadableLinkPurchasedRepository object
-     *
-     * @var \Webkul\Sales\Repositories\DownloadableLinkPurchasedRepository
-     */
-    protected $downloadableLinkPurchasedRepository;
-
     /**
      * Create a new repository instance.
      *
@@ -48,35 +20,29 @@ class RefundRepository extends Repository
      * @param  \Illuminate\Container\Container  $app
      */
     public function __construct(
-        OrderRepository $orderRepository,
-        OrderItemRepository $orderItemRepository,
-        RefundItemRepository $refundItemRepository,
-        DownloadableLinkPurchasedRepository $downloadableLinkPurchasedRepository,
+        protected OrderRepository $orderRepository,
+        protected OrderItemRepository $orderItemRepository,
+        protected RefundItemRepository $refundItemRepository,
+        protected DownloadableLinkPurchasedRepository $downloadableLinkPurchasedRepository,
         App $app
     )
     {
-        $this->orderRepository = $orderRepository;
-
-        $this->orderItemRepository = $orderItemRepository;
-
-        $this->refundItemRepository = $refundItemRepository;
-
-        $this->downloadableLinkPurchasedRepository = $downloadableLinkPurchasedRepository;
-
         parent::__construct($app);
     }
 
     /**
-     * Specify Model class name
+     * Specify model class name.
      *
      * @return string
      */
-    function model()
+    public function model()
     {
         return Refund::class;
     }
 
     /**
+     * Create refund.
+     *
      * @param  array  $data
      * @return \Webkul\Sales\Contracts\Refund
      */
@@ -127,10 +93,10 @@ class RefundRepository extends Repository
                     'base_price'           => $orderItem->base_price,
                     'total'                => $orderItem->price * $qty,
                     'base_total'           => $orderItem->base_price * $qty,
-                    'tax_amount'           => ( ($orderItem->tax_amount / $orderItem->qty_ordered) * $qty ),
-                    'base_tax_amount'      => ( ($orderItem->base_tax_amount / $orderItem->qty_ordered) * $qty ),
-                    'discount_amount'      => ( ($orderItem->discount_amount / $orderItem->qty_ordered) * $qty ),
-                    'base_discount_amount' => ( ($orderItem->base_discount_amount / $orderItem->qty_ordered) * $qty ),
+                    'tax_amount'           => (($orderItem->tax_amount / $orderItem->qty_ordered) * $qty),
+                    'base_tax_amount'      => (($orderItem->base_tax_amount / $orderItem->qty_ordered) * $qty),
+                    'discount_amount'      => (($orderItem->discount_amount / $orderItem->qty_ordered) * $qty),
+                    'base_discount_amount' => (($orderItem->base_discount_amount / $orderItem->qty_ordered) * $qty),
                     'product_id'           => $orderItem->product_id,
                     'product_type'         => $orderItem->product_type,
                     'additional'           => $orderItem->additional,
@@ -139,8 +105,8 @@ class RefundRepository extends Repository
                 if ($orderItem->getTypeInstance()->isComposite()) {
                     foreach ($orderItem->children as $childOrderItem) {
                         $finalQty = $childOrderItem->qty_ordered
-                                    ? ($childOrderItem->qty_ordered / $orderItem->qty_ordered) * $qty
-                                    : $orderItem->qty_ordered;
+                            ? ($childOrderItem->qty_ordered / $orderItem->qty_ordered) * $qty
+                            : $orderItem->qty_ordered;
 
                         $refundItem->child = $this->refundItemRepository->create([
                             'refund_id'            => $refund->id,
@@ -201,6 +167,8 @@ class RefundRepository extends Repository
     }
 
     /**
+     * Collect totals.
+     *
      * @param  \Webkul\Sales\Contracts\Refund  $refund
      * @return \Webkul\Sales\Contracts\Refund
      */
@@ -230,9 +198,11 @@ class RefundRepository extends Repository
     }
 
     /**
+     * Get order items refund summary.
+     *
      * @param  array  $data
      * @param  integer  $orderId
-     * @return array
+     * @return array|bool
      */
     public function getOrderItemsRefundSummary($data, $orderId)
     {

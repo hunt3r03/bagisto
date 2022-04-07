@@ -2,25 +2,17 @@
 
 namespace Webkul\Core\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Webkul\Admin\DataGrids\NewsLetterDataGrid;
 use Webkul\Core\Repositories\SubscribersListRepository;
 
 class SubscriptionController extends Controller
 {
     /**
-     * Contains route related configuration
+     * Contains route related configuration.
      *
      * @var array
      */
     protected $_config;
-
-    /**
-     * SubscribersListRepository
-     *
-     * @var \Webkul\Core\Repositories\SubscribersListRepository
-     */
-    protected $subscribersListRepository;
 
     /**
      * Create a new controller instance.
@@ -28,10 +20,8 @@ class SubscriptionController extends Controller
      * @param  \Webkul\Core\Repositories\SubscribersListRepository  $subscribersListRepository
      * @return void
      */
-    public function __construct(SubscribersListRepository $subscribersListRepository)
+    public function __construct(protected SubscribersListRepository $subscribersListRepository)
     {
-        $this->subscribersListRepository = $subscribersListRepository;
-
         $this->_config = request('_config');
     }
 
@@ -42,11 +32,15 @@ class SubscriptionController extends Controller
      */
     public function index()
     {
+        if (request()->ajax()) {
+            return app(NewsLetterDataGrid::class)->toJson();
+        }
+
         return view($this->_config['view']);
     }
 
     /**
-     * To unsubscribe the user without deleting the resource of the subscribed user
+     * To unsubscribe the user without deleting the resource of the subscribed user.
      *
      * @param  int  $id
      * @return \Illuminate\View\View
@@ -59,7 +53,7 @@ class SubscriptionController extends Controller
     }
 
     /**
-     * To unsubscribe the user without deleting the resource of the subscribed user
+     * To unsubscribe the user without deleting the resource of the subscribed user.
      *
      * @param  int  $id
      * @return \Illuminate\Http\Response
@@ -101,15 +95,11 @@ class SubscriptionController extends Controller
         try {
             $this->subscribersListRepository->delete($id);
 
-            session()->flash('success', trans('admin::app.response.delete-success', ['name' => 'Subscriber']));
-
-            return response()->json(['message' => true], 200);
+            return response()->json(['message' => trans('admin::app.response.delete-success', ['name' => 'Subscriber'])]);
         } catch (\Exception $e) {
             report($e);
-
-            session()->flash('error', trans('admin::app.response.delete-failed', ['name' => 'Subscriber']));
         }
 
-        return response()->json(['message' => false], 400);
+        return response()->json(['message' => trans('admin::app.response.delete-failed', ['name' => 'Subscriber'])], 500);
     }
 }

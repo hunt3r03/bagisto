@@ -2,26 +2,12 @@
 
 namespace Webkul\Velocity\Http\Controllers\Admin;
 
-use Illuminate\Http\Response;
 use Webkul\Product\Repositories\ProductRepository;
+use Webkul\Velocity\DataGrids\ContentDataGrid;
 use Webkul\Velocity\Repositories\ContentRepository;
 
 class ContentController extends Controller
 {
-    /**
-     * ProductRepository object
-     *
-     * @var \Webkul\Product\Repositories\ProductRepository
-    */
-    protected $productRepository;
-
-    /**
-     * ContentRepository object
-     *
-     * @var \Webkul\Velocity\Repositories\ContentRepository
-    */
-    protected $contentRepository;
-
     /**
      * Create a new controller instance.
      *
@@ -30,15 +16,13 @@ class ContentController extends Controller
      * @return void
      */
     public function __construct(
-        ProductRepository $productRepository,
-        ContentRepository $contentRepository
-    ) {
-        $this->productRepository = $productRepository;
-
-        $this->contentRepository = $contentRepository;
-
+        protected ProductRepository $productRepository,
+        protected ContentRepository $contentRepository
+    )
+    {
         $this->_config = request('_config');
     }
+
     /**
      * Display a listing of the resource.
      *
@@ -46,14 +30,18 @@ class ContentController extends Controller
      */
     public function index()
     {
+        if (request()->ajax()) {
+            return app(ContentDataGrid::class)->toJson();
+        }
+
         return view($this->_config['view']);
     }
 
     /**
-     * Search for catalog
+     * Search for catalog.
      *
      * @return \Illuminate\View\View
-    */
+     */
     public function search()
     {
         $results = [];
@@ -149,18 +137,14 @@ class ContentController extends Controller
         try {
             $this->contentRepository->delete($id);
 
-            session()->flash('success', trans('admin::app.response.delete-success', ['name' => 'Content']));
+            return response()->json(['message' => trans('admin::app.response.delete-success', ['name' => 'Content'])]);
+        } catch (\Exception $e) {}
 
-            return response()->json(['message' => true], 200);
-        } catch (\Exception $e) {
-            session()->flash('error', trans('admin::app.response.delete-failed', ['name' => 'Content']));
-        }
-
-        return response()->json(['message' => false], 400);
+        return response()->json(['message' => trans('admin::app.response.delete-failed', ['name' => 'Content'])], 400);
     }
 
     /**
-     * Mass Delete the products
+     * Mass delete the products.
      *
      * @return \Illuminate\Http\Response
      */
@@ -180,5 +164,26 @@ class ContentController extends Controller
         session()->flash('success', trans('velocity::app.admin.contents.mass-delete-success'));
 
         return redirect()->route($this->_config['redirect']);
+    }
+
+    /**
+     * To mass update the content.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function massUpdate()
+    {
+        $contentIds = explode(',', request()->input('indexes'));
+        $updateOption = request()->input('update-options');
+
+        foreach ($contentIds as $contentId) {
+            $content = $this->contentRepository->find($contentId);
+
+            $content->update(['status' => $updateOption]);
+        }
+
+        session()->flash('success', trans('velocity::app.admin.contents.mass-update-success'));
+
+        return redirect()->back();
     }
 }

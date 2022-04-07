@@ -2,23 +2,53 @@
 
 namespace Webkul\Admin\DataGrids;
 
-use Webkul\Ui\DataGrid\DataGrid;
 use Illuminate\Support\Facades\DB;
+use Webkul\Ui\DataGrid\DataGrid;
 
 class CustomerDataGrid extends DataGrid
 {
+    /**
+     * Index.
+     *
+     * @var string
+     */
     protected $index = 'customer_id';
 
+    /**
+     * Sort order.
+     *
+     * @var string
+     */
     protected $sortOrder = 'desc';
 
+    /**
+     * Items per page.
+     *
+     * @var int
+     */
     protected $itemsPerPage = 10;
 
+    /**
+     * Prepare query builder.
+     *
+     * @return void
+     */
     public function prepareQueryBuilder()
     {
         $queryBuilder = DB::table('customers')
             ->leftJoin('customer_groups', 'customers.customer_group_id', '=', 'customer_groups.id')
-            ->addSelect('customers.id as customer_id', 'customers.email', 'customer_groups.name as group', 'customers.phone', 'customers.gender', 'status')
-            ->addSelect(DB::raw('CONCAT(' . DB::getTablePrefix() . 'customers.first_name, " ", ' . DB::getTablePrefix() . 'customers.last_name) as full_name'));
+            ->addSelect(
+                'customers.id as customer_id',
+                'customers.email',
+                'customers.phone',
+                'customers.gender',
+                'customers.status',
+                'customers.is_suspended',
+                'customer_groups.name as group',
+            )
+            ->addSelect(
+                DB::raw('CONCAT(' . DB::getTablePrefix() . 'customers.first_name, " ", ' . DB::getTablePrefix() . 'customers.last_name) as full_name')
+            );
 
         $this->addFilter('customer_id', 'customers.id');
         $this->addFilter('full_name', DB::raw('CONCAT(' . DB::getTablePrefix() . 'customers.first_name, " ", ' . DB::getTablePrefix() . 'customers.last_name)'));
@@ -30,6 +60,11 @@ class CustomerDataGrid extends DataGrid
         $this->setQueryBuilder($queryBuilder);
     }
 
+    /**
+     * Add columns.
+     *
+     * @return void
+     */
     public function addColumns()
     {
         $this->addColumn([
@@ -75,8 +110,7 @@ class CustomerDataGrid extends DataGrid
             'searchable' => true,
             'sortable'   => true,
             'filterable' => false,
-            'closure'    => true,
-            'wrapper'    => function ($row) {
+            'closure'    => function ($row) {
                 if (! $row->phone) {
                     return '-';
                 } else {
@@ -92,8 +126,7 @@ class CustomerDataGrid extends DataGrid
             'searchable' => false,
             'sortable'   => true,
             'filterable' => false,
-            'closure'    => true,
-            'wrapper'    => function ($row) {
+            'closure'    => function ($row) {
                 if (! $row->gender) {
                     return '-';
                 } else {
@@ -109,17 +142,29 @@ class CustomerDataGrid extends DataGrid
             'searchable' => false,
             'sortable'   => true,
             'filterable' => true,
-            'closure'    => true,
-            'wrapper'    => function ($row) {
+            'closure'    => function ($row) {
+                $html = '';
+
                 if ($row->status == 1) {
-                    return '<span class="badge badge-md badge-success">'. trans('admin::app.customers.customers.active') .'</span>';
+                    $html .= '<span class="badge badge-md badge-success">' . trans('admin::app.customers.customers.active') . '</span>';
                 } else {
-                    return '<span class="badge badge-md badge-danger">'. trans('admin::app.customers.customers.inactive') .'</span>';
+                    $html .= '<span class="badge badge-md badge-danger">' . trans('admin::app.customers.customers.inactive') . '</span>';
                 }
+
+                if ($row->is_suspended == 1) {
+                    $html .= '<span class="badge badge-md badge-danger">' . trans('admin::app.customers.customers.suspended') . '</span>';
+                }
+
+                return $html;
             },
         ]);
     }
 
+    /**
+     * Prepare actions.
+     *
+     * @return void
+     */
     public function prepareActions()
     {
         $this->addAction([
@@ -130,11 +175,10 @@ class CustomerDataGrid extends DataGrid
         ]);
 
         $this->addAction([
-            'type'   => 'Edit',
             'method' => 'GET',
-            'route'  => 'admin.customer.addresses.index',
-            'icon'   => 'icon list-icon',
-            'title'  => trans('admin::app.customers.customers.addresses'),
+            'route'  => 'admin.customer.note.create',
+            'icon'   => 'icon note-icon',
+            'title'  => trans('admin::app.customers.note.help-title'),
         ]);
 
         $this->addAction([
@@ -143,17 +187,12 @@ class CustomerDataGrid extends DataGrid
             'icon'   => 'icon trash-icon',
             'title'  => trans('admin::app.customers.customers.delete-help-title'),
         ]);
-
-        $this->addAction([
-            'method' => 'GET',
-            'route'  => 'admin.customer.note.create',
-            'icon'   => 'icon note-icon',
-            'title'  => trans('admin::app.customers.note.help-title'),
-        ]);
     }
 
     /**
-     * Customer Mass Action To Delete And Change Their
+     * Prepare mass actions.
+     *
+     * @return void
      */
     public function prepareMassActions()
     {
@@ -170,8 +209,8 @@ class CustomerDataGrid extends DataGrid
             'action'  => route('admin.customer.mass-update'),
             'method'  => 'POST',
             'options' => [
-                'Active'   => 1,
-                'Inactive' => 0,
+                trans('admin::app.datagrid.active')    => 1,
+                trans('admin::app.datagrid.inactive')  => 0,
             ],
         ]);
     }

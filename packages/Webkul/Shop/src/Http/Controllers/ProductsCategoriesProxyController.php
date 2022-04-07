@@ -1,45 +1,27 @@
 <?php
 
-
 namespace Webkul\Shop\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Webkul\Category\Repositories\CategoryRepository;
+use Webkul\Core\Repositories\SliderRepository;
 use Webkul\Product\Repositories\ProductRepository;
+use Webkul\Category\Repositories\CategoryRepository;
 
 class ProductsCategoriesProxyController extends Controller
 {
-    /**
-     * CategoryRepository object
-     *
-     * @var \Webkul\Category\Repositories\CategoryRepository
-     */
-    protected $categoryRepository;
-
-    /**
-     * ProductRepository object
-     *
-     * @var \Webkul\Product\Repositories\ProductRepository
-     */
-    protected $productRepository;
-
     /**
      * Create a new controller instance.
      *
      * @param  \Webkul\Category\Repositories\CategoryRepository  $categoryRepository
      * @param  \Webkul\Product\Repositories\ProductRepository  $productRepository
-     *
      * @return void
      */
     public function __construct(
-        CategoryRepository $categoryRepository,
-        ProductRepository $productRepository
+        protected CategoryRepository $categoryRepository,
+        protected ProductRepository $productRepository,
+        protected SliderRepository $sliderRepository
     )
     {
-        $this->categoryRepository = $categoryRepository;
-
-        $this->productRepository = $productRepository;
-
         parent::__construct();
     }
 
@@ -73,13 +55,7 @@ class ProductsCategoriesProxyController extends Controller
             abort(404);
         }
 
-        $sliderRepository = app('Webkul\Core\Repositories\SliderRepository');
-
-        $sliderData = $sliderRepository
-            ->where('channel_id', core()->getCurrentChannel()->id)
-            ->where('locale', core()->getCurrentLocale()->code)
-            ->get()
-            ->toArray();
+        $sliderData = $this->sliderRepository->getActiveSliders();
 
         return view('shop::home.index', compact('sliderData'));
     }

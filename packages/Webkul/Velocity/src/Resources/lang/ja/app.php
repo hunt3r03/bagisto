@@ -265,6 +265,7 @@ return [
         'short-description' => '短い説明',
         'recently-viewed'   => '最近見た製品',
         'be-first-review'   => '最初のレビューを書く',
+        'tax-inclusive'     => 'Inclusive of all taxes',
     ],
 
     'shop'        => [
@@ -298,7 +299,10 @@ return [
         'wishlist'  => [
             'add-wishlist-text'     => '製品をウィッシュリストに追加',
             'remove-wishlist-text'  => 'ウィッシュリストから商品を削除',
-        ]
+        ],
+        'overlay-loader' => [
+            'message' => '進行中',
+        ],
     ],
 
     'responsive'  => [

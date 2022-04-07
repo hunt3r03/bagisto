@@ -3,28 +3,18 @@
 namespace Webkul\Product\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
-use Webkul\Product\Repositories\ProductRepository;
-use Webkul\Product\Repositories\ProductAttributeValueRepository;
+use Webkul\Admin\Validations\ProductCategoryUniqueSlug;
+use Webkul\Core\Contracts\Validations\Decimal;
+use Webkul\Core\Contracts\Validations\Slug;
 use Webkul\Product\Models\ProductAttributeValue;
+use Webkul\Product\Repositories\ProductAttributeValueRepository;
+use Webkul\Product\Repositories\ProductRepository;
 
 class ProductForm extends FormRequest
 {
     /**
-     * ProductRepository object
+     * Rules.
      *
-     * @var \Webkul\Product\Repositories\ProductRepository
-     */
-    protected $productRepository;
-
-    /**
-     * ProductAttributeValueRepository object
-     *
-     * @var \Webkul\Product\Repositories\ProductAttributeValueRepository
-     */
-    protected $productAttributeValueRepository;
-
-    /**
      * @var array
      */
     protected $rules;
@@ -33,17 +23,14 @@ class ProductForm extends FormRequest
      * Create a new form request instance.
      *
      * @param  \Webkul\Product\Repositories\ProductRepository  $productRepository
-     * @param  \Webkul\Product\Repositories\ProductAttributeValueRepository $productAttributeValueRepository
+     * @param  \Webkul\Product\Repositories\ProductAttributeValueRepository  $productAttributeValueRepository
      * @return void
      */
     public function __construct(
-        ProductRepository $productRepository,
-        ProductAttributeValueRepository $productAttributeValueRepository
+        protected ProductRepository $productRepository,
+        protected ProductAttributeValueRepository $productAttributeValueRepository
     )
     {
-        $this->productRepository = $productRepository;
-
-        $this->productAttributeValueRepository = $productAttributeValueRepository;
     }
 
     /**
@@ -65,19 +52,22 @@ class ProductForm extends FormRequest
     {
         $product = $this->productRepository->find($this->id);
 
-        $maxVideoFileSize = (core()->getConfigData('catalog.products.attribute.file_attribute_upload_size')) ? core()->getConfigData('catalog.products.attribute.file_attribute_upload_size') : '2048' ;
+        $maxVideoFileSize = (core()->getConfigData('catalog.products.attribute.file_attribute_upload_size')) ? core()->getConfigData('catalog.products.attribute.file_attribute_upload_size') : '2048';
 
         $this->rules = array_merge($product->getTypeInstance()->getTypeValidationRules(), [
-            'sku'                => ['required', 'unique:products,sku,' . $this->id, new \Webkul\Core\Contracts\Validations\Slug],
-            'images.*'           => 'nullable|mimes:bmp,jpeg,jpg,png,webp',
-            'videos.*'           => "nullable|mimes:mov,mp4|max:$maxVideoFileSize",
-            'special_price_from' => 'nullable|date',
-            'special_price_to'   => 'nullable|date|after_or_equal:special_price_from',
-            'special_price'      => ['nullable', new \Webkul\Core\Contracts\Validations\Decimal, 'lt:price'],
+            'sku'                => ['required', 'unique:products,sku,' . $this->id, new Slug],
+            'url_key'            => ['required', new ProductCategoryUniqueSlug('product_flat', $this->id)],
+            'images.files.*'     => ['nullable', 'mimes:bmp,jpeg,jpg,png,webp'],
+            'images.positions.*' => ['nullable', 'integer'],
+            'videos.files.*'     => ['nullable', 'mimetypes:application/octet-stream,video/mp4,video/webm,video/quicktime', 'max:' . $maxVideoFileSize],
+            'videos.positions.*' => ['nullable', 'integer'],
+            'special_price_from' => ['nullable', 'date'],
+            'special_price_to'   => ['nullable', 'date', 'after_or_equal:special_price_from'],
+            'special_price'      => ['nullable', new Decimal, 'lt:price'],
         ]);
 
         foreach ($product->getEditableAttributes() as $attribute) {
-            if ($attribute->code == 'sku' || $attribute->type == 'boolean') {
+            if (in_array($attribute->code, ['sku', 'url_key']) || $attribute->type == 'boolean') {
                 continue;
             }
 
@@ -92,13 +82,13 @@ class ProductForm extends FormRequest
             if ($attribute->type == 'text' && $attribute->validation) {
                 array_push($validations,
                     $attribute->validation == 'decimal'
-                    ? new \Webkul\Core\Contracts\Validations\Decimal
-                    : $attribute->validation
+                        ? new Decimal
+                        : $attribute->validation
                 );
             }
 
             if ($attribute->type == 'price') {
-                array_push($validations, new \Webkul\Core\Contracts\Validations\Decimal);
+                array_push($validations, new Decimal);
             }
 
             if ($attribute->is_unique) {
@@ -106,7 +96,7 @@ class ProductForm extends FormRequest
                     $column = ProductAttributeValue::$attributeTypeFields[$attribute->type];
 
                     if (! $this->productAttributeValueRepository->isValueUnique($this->id, $attribute->id, $column, request($attribute->code))) {
-                        $fail('The :attribute has already been taken.');
+                        $fail(__('admin::app.response.already-taken', ['name' => ':attribute']));
                     }
                 });
             }
@@ -118,14 +108,28 @@ class ProductForm extends FormRequest
     }
 
     /**
-     * Custom message for validation
+     * Custom message for validation.
      *
      * @return array
-    */
+     */
     public function messages()
     {
         return [
-            'variants.*.sku.unique' => 'The sku has already been taken.',
+            'variants.*.sku.unique' => __('admin::app.response.already-taken', ['name' => ':attribute']),
+        ];
+    }
+
+    /**
+     * Attributes.
+     *
+     * @return array
+     */
+    public function attributes()
+    {
+        return [
+            'images.files.*' => 'image',
+            'videos.files.*' => 'video',
+            'variants.*.sku' => 'sku',
         ];
     }
 }

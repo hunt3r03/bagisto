@@ -4,7 +4,9 @@ namespace Webkul\Velocity\Http\Controllers\Admin;
 
 use Illuminate\Support\Str;
 use Webkul\Core\Traits\Sanitizer;
+use Webkul\Velocity\Helpers\Helper;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use Webkul\Velocity\Repositories\VelocityMetadataRepository;
 
 class ConfigurationController extends Controller
@@ -12,37 +14,18 @@ class ConfigurationController extends Controller
     use Sanitizer;
 
     /**
-     * Locale
-     */
-    protected $locale;
-
-    /**
-     * Channel
-     */
-    protected $channel;
-
-    /**
-     * VelocityMetadataRepository $velocityMetaDataRepository
-     *
-     * @var \Webkul\Velocity\Repositories\VelocityMetadataRepository
-     */
-    protected $velocityMetaDataRepository;
-
-    /**
      * Create a new controller instance.
      *
-     * @param  \Webkul\Velocity\Repositories\MetadataRepository  $velocityMetaDataRepository
+     * @param  \Webkul\Velocity\Helpers\Helper  $velocityHelper
+     * @param  \Webkul\Velocity\Repositories\MetadataRepository  $velocityMetadataRepository
      * @return void
      */
-    public function __construct (VelocityMetadataRepository $velocityMetadataRepository)
+    public function __construct (
+        protected Helper $velocityHelper,
+        protected VelocityMetadataRepository $velocityMetadataRepository
+    )
     {
         $this->_config = request('_config');
-
-        $this->velocityHelper = app('Webkul\Velocity\Helpers\Helper');
-        $this->velocityMetaDataRepository = $velocityMetadataRepository;
-
-        $this->locale = request()->get('locale') ?: app()->getLocale();
-        $this->channel = request()->get('channel') ?: 'default';
     }
 
     /**
@@ -52,14 +35,16 @@ class ConfigurationController extends Controller
      */
     public function renderMetaData()
     {
-        $this->locale = request()->get('locale') ? request()->get('locale') : app()->getLocale();
+        $locale = core()->checkRequestedLocaleCodeInRequestedChannel();
 
-        $velocityMetaData = $this->velocityHelper->getVelocityMetaData($this->locale, $this->channel, false);
+        $channel = core()->getRequestedChannelCode();
+
+        $velocityMetaData = $this->velocityHelper->getVelocityMetaData($locale, $channel, false);
 
         if (! $velocityMetaData) {
-            $this->createMetaData($this->locale, $this->channel);
+            $this->createMetaData($locale, $channel);
 
-            $velocityMetaData = $this->velocityHelper->getVelocityMetaData($this->locale, $this->channel);
+            $velocityMetaData = $this->velocityHelper->getVelocityMetaData($locale, $channel);
         }
 
         $velocityMetaData->advertisement = $this->manageAddImages(json_decode($velocityMetaData->advertisement, true) ?: []);
@@ -77,7 +62,9 @@ class ConfigurationController extends Controller
      */
     public function storeMetaData($id)
     {
-        // check if radio button value
+        $locale = core()->checkRequestedLocaleCodeInRequestedChannel();
+
+        /* check if radio button value */
         if (request()->get('slides') == "on") {
             $params = request()->all() + [
                 'slider' => 1,
@@ -88,7 +75,7 @@ class ConfigurationController extends Controller
             ];
         }
 
-        $velocityMetaData = $this->velocityMetaDataRepository->findOneWhere([
+        $velocityMetaData = $this->velocityMetadataRepository->findOneWhere([
             'id' => $id,
         ]);
 
@@ -118,14 +105,14 @@ class ConfigurationController extends Controller
         unset($params['images']);
         unset($params['slides']);
 
-        $params['locale'] = $this->locale;
+        $params['locale'] = $locale;
 
-        // update row
-        $product = $this->velocityMetaDataRepository->update($params, $id);
+        /* update row */
+        $this->velocityMetadataRepository->update($params, $id);
 
         session()->flash('success', trans('admin::app.response.update-success', ['name' => trans('velocity::app.admin.meta-data.title')]));
 
-        return redirect()->route($this->_config['redirect'], ['locale' => $this->locale]);
+        return redirect()->route($this->_config['redirect'], ['locale' => $locale]);
     }
 
     /**
@@ -139,13 +126,12 @@ class ConfigurationController extends Controller
     public function uploadAdvertisementImages($data, $index, $advertisement)
     {
         $saveImage = [];
+        $dir = 'velocity/images';
 
         $saveData = $advertisement;
-
         foreach ($data as $imageId => $image) {
             if ($image != "") {
                 $file = 'images.' . $index . '.' . $imageId;
-                $dir = 'velocity/images';
 
                 if (Str::contains($imageId, 'image_')) {
                     if (request()->hasFile($file) && $image) {
@@ -174,9 +160,9 @@ class ConfigurationController extends Controller
                     }
                 }
             } else {
-                if ($saveData) {
-                    $subIndex = substr($imageId, -1);
+                $subIndex = substr($imageId, -1);
 
+                if ($saveData) {
                     if (isset($advertisement[$index][$subIndex])) {
                         $saveImage[$subIndex] = $advertisement[$index][$subIndex];
 
@@ -184,6 +170,85 @@ class ConfigurationController extends Controller
                             unset($advertisement[$index]);
                         } else {
                             unset($advertisement[$index][$subIndex]);
+                        }
+                    }
+                } else {
+                    if (! isset($advertisement[$index][$subIndex])) {
+                        if ( $index == 4 ) {
+                            switch ($subIndex) {
+                                case '1':
+                                    $copyAdImage = $this->copyAdvertiseImages(public_path('/themes/velocity/assets/images/big-sale-banner.webp'), $dir);
+                                    if ( $copyAdImage ) {
+                                        $saveImage[$subIndex] = $copyAdImage;
+                                    }
+                                    break;
+                                case '2':
+                                    $copyAdImage = $this->copyAdvertiseImages(public_path('/themes/velocity/assets/images/seasons.webp'), $dir);
+                                    if ( $copyAdImage ) {
+                                        $saveImage[$subIndex] = $copyAdImage;
+                                    }
+                                    break;
+                                case '3':
+                                    $copyAdImage = $this->copyAdvertiseImages(public_path('/themes/velocity/assets/images/deals.webp'), $dir);
+                                    if ( $copyAdImage ) {
+                                        $saveImage[$subIndex] = $copyAdImage;
+                                    }
+                                    break;
+                                case '4':
+                                    $copyAdImage = $this->copyAdvertiseImages(public_path('/themes/velocity/assets/images/kids.webp'), $dir);
+                                    if ( $copyAdImage ) {
+                                        $saveImage[$subIndex] = $copyAdImage;
+                                    }
+                                    break;
+                                
+                                default:
+                                    
+                                    break;
+                            }
+                        } elseif ( $index == 3 ) {
+                            switch ($subIndex) {
+                                case '1':
+                                    $copyAdImage = $this->copyAdvertiseImages(public_path('/themes/velocity/assets/images/headphones.webp'), $dir);
+                                    if ( $copyAdImage ) {
+                                        $saveImage[$subIndex] = $copyAdImage;
+                                    }
+                                    break;
+                                case '2':
+                                    $copyAdImage = $this->copyAdvertiseImages(public_path('/themes/velocity/assets/images/watch.webp'), $dir);
+                                    if ( $copyAdImage ) {
+                                        $saveImage[$subIndex] = $copyAdImage;
+                                    }
+                                    break;
+                                case '3':
+                                    $copyAdImage = $this->copyAdvertiseImages(public_path('/themes/velocity/assets/images/kids-2.webp'), $dir);
+                                    if ( $copyAdImage ) {
+                                        $saveImage[$subIndex] = $copyAdImage;
+                                    }
+                                    break;
+
+                                default:
+                                    
+                                    break;
+                            }
+                        } elseif ( $index == 2 ) {
+                            switch ($subIndex) {
+                                case '1':
+                                    $copyAdImage = $this->copyAdvertiseImages(public_path('/themes/velocity/assets/images/toster.webp'), $dir);
+                                    if ( $copyAdImage ) {
+                                        $saveImage[$subIndex] = $copyAdImage;
+                                    }
+                                    break;
+                                case '2':
+                                    $copyAdImage = $this->copyAdvertiseImages(public_path('/themes/velocity/assets/images/trimmer.webp'), $dir);
+                                    if ( $copyAdImage ) {
+                                        $saveImage[$subIndex] = $copyAdImage;
+                                    }
+                                    break;
+
+                                default:
+                                    
+                                    break;
+                            }
                         }
                     }
                 }
@@ -200,10 +265,32 @@ class ConfigurationController extends Controller
     }
 
     /**
+     * Copy the default adversise images 
+     *
+     * @param  string  $resourceImagePath
+     * @param  string  $copiedPath
+     * @return mixed
+     */
+    private function copyAdvertiseImages($resourceImagePath, $copiedPath)
+    {
+        $result = null;
+        $path = explode("/", $resourceImagePath);
+
+        $image = $copiedPath . '/' . end($path);
+
+        Storage::makeDirectory($copiedPath);
+
+        if ( File::copy($resourceImagePath, storage_path('app/public/' . $image)) ) {
+            $result = $image;
+        }
+
+        return $result;
+    }
+
+    /**
      * Manage add images.
      *
      * @param  array  $addImages
-     *
      * @return array
      */
     public function manageAddImages($addImages)
@@ -233,12 +320,11 @@ class ConfigurationController extends Controller
      *
      * @param  string  $locale
      * @param  string  $channel
-     *
      * @return array
      */
     private function createMetaData($locale, $channel)
     {
-        $this->velocityMetaDataRepository->create([
+        $this->velocityMetadataRepository->create([
             'locale'                   => $locale,
             'channel'                  => $channel,
             'header_content_count'     => '5',

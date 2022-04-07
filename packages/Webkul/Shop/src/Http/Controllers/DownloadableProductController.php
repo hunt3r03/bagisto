@@ -4,30 +4,18 @@ namespace Webkul\Shop\Http\Controllers;
 
 use Illuminate\Support\Facades\Storage;
 use Webkul\Sales\Repositories\DownloadableLinkPurchasedRepository;
+use Webkul\Shop\DataGrids\DownloadableProductDataGrid;
 
 class DownloadableProductController extends Controller
 {
-    /**
-     * DownloadableLinkPurchasedRepository object
-     *
-     * @var \Webkul\Sales\Repositories\DownloadableLinkPurchasedRepository
-     */
-    protected $downloadableLinkPurchasedRepository;
-
     /**
      * Create a new controller instance.
      *
      * @param  \Webkul\Sales\Repositories\DownloadableLinkPurchasedRepository  $downloadableLinkPurchasedRepository
      * @return void
      */
-    public function __construct(
-        DownloadableLinkPurchasedRepository $downloadableLinkPurchasedRepository
-    )
+    public function __construct(protected DownloadableLinkPurchasedRepository $downloadableLinkPurchasedRepository)
     {
-        $this->middleware('customer');
-
-        $this->downloadableLinkPurchasedRepository = $downloadableLinkPurchasedRepository;
-
         parent::__construct();
     }
 
@@ -38,6 +26,10 @@ class DownloadableProductController extends Controller
     */
     public function index()
     {
+        if (request()->ajax()) {
+            return app(DownloadableProductDataGrid::class)->toJson();
+        }
+
         return view($this->_config['view']);
     }
 
@@ -65,6 +57,9 @@ class DownloadableProductController extends Controller
             }
         }
 
+        $orderedQty = $downloadableLinkPurchased->order->total_qty_ordered;
+        $totalInvoiceQty = $totalInvoiceQty * ($downloadableLinkPurchased->download_bought / $orderedQty);
+
         if ($downloadableLinkPurchased->download_used == $totalInvoiceQty || $downloadableLinkPurchased->download_used > $totalInvoiceQty) {
             session()->flash('warning', trans('shop::app.customer.account.downloadable_products.payment-error'));
 
@@ -89,7 +84,11 @@ class DownloadableProductController extends Controller
         }
 
         if ($downloadableLinkPurchased->type == 'file') {
-            return Storage::download($downloadableLinkPurchased->file);
+            $privateDisk = Storage::disk('private');
+
+            return $privateDisk->exists($downloadableLinkPurchased->file)
+                ? $privateDisk->download($downloadableLinkPurchased->file)
+                : abort(404);
         } else {
             $fileName = $name = substr($downloadableLinkPurchased->url, strrpos($downloadableLinkPurchased->url, '/') + 1);;
 

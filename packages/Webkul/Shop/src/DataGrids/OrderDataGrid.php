@@ -2,15 +2,30 @@
 
 namespace Webkul\Shop\DataGrids;
 
-use Webkul\Ui\DataGrid\DataGrid;
 use Illuminate\Support\Facades\DB;
+use Webkul\Ui\DataGrid\DataGrid;
 
 class OrderDataGrid extends DataGrid
 {
+    /**
+     * Index.
+     *
+     * @var string
+     */
     protected $index = 'id';
 
+    /**
+     * Sort order.
+     *
+     * @var string
+     */
     protected $sortOrder = 'desc';
 
+    /**
+     * Prepare query builder.
+     *
+     * @return void
+     */
     public function prepareQueryBuilder()
     {
         $queryBuilder = DB::table('orders as order')
@@ -20,6 +35,11 @@ class OrderDataGrid extends DataGrid
         $this->setQueryBuilder($queryBuilder);
     }
 
+    /**
+     * Add columns.
+     *
+     * @return void
+     */
     public function addColumns()
     {
         $this->addColumn([
@@ -33,7 +53,7 @@ class OrderDataGrid extends DataGrid
 
         $this->addColumn([
             'index'      => 'created_at',
-            'label'      => trans('shop::app.customer.account.order.index.date'),
+            'label'      => trans('shop::app.customer.account.order.view.order-date'),
             'type'       => 'datetime',
             'searchable' => true,
             'sortable'   => true,
@@ -47,7 +67,7 @@ class OrderDataGrid extends DataGrid
             'searchable' => true,
             'sortable'   => true,
             'filterable' => true,
-            'wrapper'    => function ($value) {
+            'closure'    => function ($value) {
                 return core()->formatPrice($value->grand_total, $value->order_currency_code);
             },
         ]);
@@ -56,23 +76,31 @@ class OrderDataGrid extends DataGrid
             'index'      => 'status',
             'label'      => trans('shop::app.customer.account.order.index.status'),
             'type'       => 'string',
+            'options'    => [
+                'processing'      => trans('shop::app.customer.account.order.index.processing'),
+                'completed'       => trans('shop::app.customer.account.order.index.completed'),
+                'canceled'        => trans('shop::app.customer.account.order.index.canceled'),
+                'closed'          => trans('shop::app.customer.account.order.index.closed'),
+                'pending'         => trans('shop::app.customer.account.order.index.pending'),
+                'pending_payment' => trans('shop::app.customer.account.order.index.pending-payment'),
+                'fraud'           => trans('shop::app.customer.account.order.index.fraud'),
+            ],
             'searchable' => false,
             'sortable'   => true,
-            'closure'    => true,
-            'wrapper'    => function ($value) {
+            'closure'    => function ($value) {
                 if ($value->status == 'processing') {
                     return '<span class="badge badge-md badge-success">' . trans('shop::app.customer.account.order.index.processing') . '</span>';
                 } elseif ($value->status == 'completed') {
                     return '<span class="badge badge-md badge-success">' . trans('shop::app.customer.account.order.index.completed') . '</span>';
-                } elseif ($value->status == "canceled") {
+                } elseif ($value->status == 'canceled') {
                     return '<span class="badge badge-md badge-danger">' . trans('shop::app.customer.account.order.index.canceled') . '</span>';
-                } elseif ($value->status == "closed") {
+                } elseif ($value->status == 'closed') {
                     return '<span class="badge badge-md badge-info">' . trans('shop::app.customer.account.order.index.closed') . '</span>';
-                } elseif ($value->status == "pending") {
+                } elseif ($value->status == 'pending') {
                     return '<span class="badge badge-md badge-warning">' . trans('shop::app.customer.account.order.index.pending') . '</span>';
-                } elseif ($value->status == "pending_payment") {
+                } elseif ($value->status == 'pending_payment') {
                     return '<span class="badge badge-md badge-warning">' . trans('shop::app.customer.account.order.index.pending-payment') . '</span>';
-                } elseif ($value->status == "fraud") {
+                } elseif ($value->status == 'fraud') {
                     return '<span class="badge badge-md badge-danger">' . trans('shop::app.customer.account.order.index.fraud') . '</span>';
                 }
             },
@@ -80,9 +108,15 @@ class OrderDataGrid extends DataGrid
         ]);
     }
 
+    /**
+     * Prepare actions.
+     *
+     * @return void
+     */
     public function prepareActions()
     {
         $this->addAction([
+            'title'  => trans('ui::app.datagrid.view'),
             'type'   => 'View',
             'method' => 'GET',
             'route'  => 'customer.orders.view',

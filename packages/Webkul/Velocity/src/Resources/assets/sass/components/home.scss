@@ -1,6 +1,4 @@
 body {
-    display: none;
-    overflow-x: hidden;
     scroll-behavior: smooth;
 
     .container-margin {
@@ -463,8 +461,6 @@ header #search-form > *:focus {
 .main-content-wrapper {
     @extend .fs14;
 
-    margin: 0;
-    margin-bottom: 60px;
     display: inline-block;
 
     > .row {
@@ -474,8 +470,12 @@ header #search-form > *:focus {
     }
 
     .main-category {
-        padding: 8px 15px;
+        padding: 10px 15px;
         border-top: 1px solid $border-common;
+
+        .pl5 {
+            vertical-align: top;
+        }
     }
 
     .content-list {
@@ -491,8 +491,10 @@ header #search-form > *:focus {
         ul {
             width: 100%;
             height: 100%;
+            white-space: nowrap;
             display: inline-flex;
             background-color: $link-color;
+            overflow-x: auto;
 
             li {
                 a {
@@ -500,7 +502,7 @@ header #search-form > *:focus {
                     cursor: pointer;
                     font-size: 16px;
                     font-weight: 600;
-                    padding: 8px 15px;
+                    padding: 11px 15px;
                     letter-spacing: 0;
                     position: relative;
                     color: $white-color;
@@ -709,6 +711,11 @@ body::after {
 
 .container {
     max-width: 1300px !important;
+}
+
+.slider-container {
+    min-height: 400px;
+    margin-bottom: 20px;
 }
 
 .remove-padding-margin {

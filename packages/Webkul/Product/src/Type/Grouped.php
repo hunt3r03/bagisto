@@ -2,47 +2,40 @@
 
 namespace Webkul\Product\Type;
 
-use Webkul\Product\Models\ProductFlat;
-use Webkul\Product\Repositories\ProductRepository;
 use Webkul\Attribute\Repositories\AttributeRepository;
-use Webkul\Product\Repositories\ProductImageRepository;
-use Webkul\Product\Repositories\ProductVideoRepository;
-use Webkul\Product\Repositories\ProductInventoryRepository;
+use Webkul\Product\Models\ProductFlat;
 use Webkul\Product\Repositories\ProductAttributeValueRepository;
 use Webkul\Product\Repositories\ProductGroupedProductRepository;
+use Webkul\Product\Repositories\ProductImageRepository;
+use Webkul\Product\Repositories\ProductInventoryRepository;
+use Webkul\Product\Repositories\ProductRepository;
+use Webkul\Product\Repositories\ProductVideoRepository;
 
 class Grouped extends AbstractType
 {
     /**
-     * ProductGroupedProductRepository instance
-     *
-     * @var \Webkul\Product\Repositories\ProductGroupedProductRepository
-     */
-    protected $productGroupedProductRepository;
-
-    /**
-     * Skip attribute for downloadable product type
+     * Skip attribute for downloadable product type.
      *
      * @var array
      */
-    protected $skipAttributes = ['price', 'cost', 'special_price', 'special_price_from', 'special_price_to', 'width', 'height', 'depth', 'weight'];
+    protected $skipAttributes = ['price', 'cost', 'special_price', 'special_price_from', 'special_price_to', 'length', 'width', 'height', 'weight', 'depth'];
 
     /**
-     * These blade files will be included in product edit page
+     * These blade files will be included in product edit page.
      *
      * @var array
      */
     protected $additionalViews = [
         'admin::catalog.products.accordians.images',
+        'admin::catalog.products.accordians.videos',
         'admin::catalog.products.accordians.categories',
         'admin::catalog.products.accordians.grouped-products',
         'admin::catalog.products.accordians.channels',
         'admin::catalog.products.accordians.product-links',
-        'admin::catalog.products.accordians.videos',
     ];
 
     /**
-     * Is a composite product type
+     * Is a composite product type.
      *
      * @var boolean
      */
@@ -51,13 +44,13 @@ class Grouped extends AbstractType
     /**
      * Create a new product type instance.
      *
-     * @param  \Webkul\Attribute\Repositories\AttributeRepository            $attributeRepository
-     * @param  \Webkul\Product\Repositories\ProductRepository                $productRepository
+     * @param  \Webkul\Attribute\Repositories\AttributeRepository  $attributeRepository
+     * @param  \Webkul\Product\Repositories\ProductRepository  $productRepository
      * @param  \Webkul\Product\Repositories\ProductAttributeValueRepository  $attributeValueRepository
-     * @param  \Webkul\Product\Repositories\ProductInventoryRepository       $productInventoryRepository
-     * @param  \Webkul\Product\Repositories\ProductImageRepository           $productImageRepository
+     * @param  \Webkul\Product\Repositories\ProductInventoryRepository  $productInventoryRepository
+     * @param  \Webkul\Product\Repositories\ProductImageRepository  $productImageRepository
      * @param  \Webkul\Product\Repositories\ProductGroupedProductRepository  $productGroupedProductRepository
-     * @param  \Webkul\Product\Repositories\ProductVideoRepository           $productVideoRepository
+     * @param  \Webkul\Product\Repositories\ProductVideoRepository  $productVideoRepository
      * @return void
      */
     public function __construct(
@@ -66,8 +59,8 @@ class Grouped extends AbstractType
         ProductAttributeValueRepository $attributeValueRepository,
         ProductInventoryRepository $productInventoryRepository,
         ProductImageRepository $productImageRepository,
-        ProductGroupedProductRepository $productGroupedProductRepository,
-        ProductVideoRepository $productVideoRepository
+        ProductVideoRepository $productVideoRepository,
+        protected ProductGroupedProductRepository $productGroupedProductRepository
     )
     {
         parent::__construct(
@@ -78,19 +71,20 @@ class Grouped extends AbstractType
             $productImageRepository,
             $productVideoRepository
         );
-
-        $this->productGroupedProductRepository = $productGroupedProductRepository;
     }
 
     /**
+     * Update.
+     *
      * @param  array  $data
      * @param  int  $id
      * @param  string  $attribute
      * @return \Webkul\Product\Contracts\Product
      */
-    public function update(array $data, $id, $attribute = "id")
+    public function update(array $data, $id, $attribute = 'id')
     {
         $product = parent::update($data, $id, $attribute);
+
         $route = request()->route() ? request()->route()->getName() : '';
 
         if ($route != 'admin.catalog.products.massupdate') {
@@ -101,7 +95,7 @@ class Grouped extends AbstractType
     }
 
     /**
-     * Returns children ids
+     * Returns children ids.
      *
      * @return array
      */
@@ -111,7 +105,7 @@ class Grouped extends AbstractType
     }
 
     /**
-     * Check if catalog rule can be applied
+     * Check if catalog rule can be applied.
      *
      * @return bool
      */
@@ -121,8 +115,9 @@ class Grouped extends AbstractType
     }
 
     /**
-     * Get product minimal price
+     * Get product minimal price.
      *
+     * @param  int  $qty
      * @return float
      */
     public function getMinimalPrice($qty = null)
@@ -130,22 +125,24 @@ class Grouped extends AbstractType
         $minPrices = [];
 
         foreach ($this->product->grouped_products as $groupOptionProduct) {
-            $minPrices[] = $groupOptionProduct->associated_product->getTypeInstance()->getMinimalPrice();
+            $groupOptionProductTypeInstance = $groupOptionProduct->associated_product->getTypeInstance();
+
+            $groupOptionProductMinimalPrice = $groupOptionProductTypeInstance->getMinimalPrice();
+
+            $minPrices[] = $groupOptionProductTypeInstance->evaluatePrice($groupOptionProductMinimalPrice);
         }
 
-        if (empty($minPrices)) {
-            return 0;
-        }
-
-        return min($minPrices);
+        return empty($minPrices) ? 0 : min($minPrices);
     }
 
     /**
+     * Is saleable.
+     *
      * @return bool
      */
     public function isSaleable()
     {
-        if (!$this->product->status) {
+        if (! $this->product->status) {
             return false;
         }
 
@@ -157,24 +154,28 @@ class Grouped extends AbstractType
     }
 
     /**
-     * Get group product special price
+     * Check whether group product have special price.
      *
-     * @return boolean
+     * @param  int  $qty
+     * @return bool
      */
-    private function checkGroupProductHaveSpecialPrice()
+    public function haveSpecialPrice($qty = null)
     {
         $haveSpecialPrice = false;
+
         foreach ($this->product->grouped_products as $groupOptionProduct) {
             if ($groupOptionProduct->associated_product->getTypeInstance()->haveSpecialPrice()) {
                 $haveSpecialPrice = true;
+
                 break;
             }
         }
+
         return $haveSpecialPrice;
     }
 
     /**
-     * Get product minimal price
+     * Get product minimal price.
      *
      * @return string
      */
@@ -182,8 +183,9 @@ class Grouped extends AbstractType
     {
         $html = '';
 
-        if ($this->checkGroupProductHaveSpecialPrice())
+        if ($this->haveSpecialPrice()) {
             $html .= '<div class="sticker sale">' . trans('shop::app.products.sale') . '</div>';
+        }
 
         $html .= '<span class="price-label">' . trans('shop::app.products.starting-at') . '</span>'
         . ' '

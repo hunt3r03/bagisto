@@ -6,7 +6,7 @@
 
 @section('content')
     <div class="content">
-        @php $locale = request()->get('locale') ?: app()->getLocale(); @endphp
+        @php $locale = core()->getRequestedLocaleCode(); @endphp
 
         <form method="POST" action="{{ route('admin.channels.update', ['id' => $channel->id, 'locale' => $locale]) }}" @submit.prevent="onSubmit" enctype="multipart/form-data">
             <div class="page-header">
@@ -46,7 +46,7 @@
                     {!! view_render_event('bagisto.admin.settings.channel.edit.before') !!}
 
                     {{-- general --}}
-                    <accordian :title="'{{ __('admin::app.settings.channels.general') }}'" :active="true">
+                    <accordian title="{{ __('admin::app.settings.channels.general') }}" :active="true">
                         <div slot="body">
 
                             <div class="control-group" :class="[errors.has('code') ? 'has-error' : '']">
@@ -101,7 +101,7 @@
 
                             <div class="control-group" :class="[errors.has('hostname') ? 'has-error' : '']">
                                 <label for="hostname">{{ __('admin::app.settings.channels.hostname') }}</label>
-                                <input type="text" v-validate="''" class="control" id="hostname" name="hostname" value="{{ $channel->hostname }}" placeholder="https://www.example.com"/>
+                                <input type="text" v-validate="''" class="control" id="hostname" name="hostname" value="{{ $channel->hostname }}" placeholder="{{ __('admin::app.settings.channels.hostname-placeholder') }}"/>
 
                                 <span class="control-error" v-if="errors.has('hostname')">@{{ errors.first('hostname') }}</span>
                             </div>
@@ -110,7 +110,7 @@
                     </accordian>
 
                     {{-- currencies and locales --}}
-                    <accordian :title="'{{ __('admin::app.settings.channels.currencies-and-locales') }}'" :active="true">
+                    <accordian title="{{ __('admin::app.settings.channels.currencies-and-locales') }}" :active="true">
                         <div slot="body">
 
                             <div class="control-group" :class="[errors.has('locales[]') ? 'has-error' : '']">
@@ -169,7 +169,7 @@
                     </accordian>
 
                     {{-- design --}}
-                    <accordian :title="'{{ __('admin::app.settings.channels.design') }}'" :active="true">
+                    <accordian title="{{ __('admin::app.settings.channels.design') }}" :active="true">
                         <div slot="body">
                             <div class="control-group">
                                 <label for="theme">{{ __('admin::app.settings.channels.theme') }}</label>
@@ -204,13 +204,17 @@
                             <div class="control-group">
                                 <label>{{ __('admin::app.settings.channels.logo') }}</label>
 
-                                <image-wrapper :button-label="'{{ __('admin::app.catalog.products.add-image-btn-title') }}'" input-name="logo" :multiple="false" :images='"{{ $channel->logo_url }}"'></image-wrapper>
+                                <image-wrapper button-label="{{ __('admin::app.catalog.products.add-image-btn-title') }}" input-name="logo" :multiple="false" :images='"{{ $channel->logo_url }}"'></image-wrapper>
+                            
+                                <span class="control-info mt-10">{{ __('admin::app.settings.channels.logo-size') }}</span>
                             </div>
 
                             <div class="control-group">
                                 <label>{{ __('admin::app.settings.channels.favicon') }}</label>
 
-                                <image-wrapper :button-label="'{{ __('admin::app.catalog.products.add-image-btn-title') }}'" input-name="favicon" :multiple="false" :images='"{{ $channel->favicon_url }}"'></image-wrapper>
+                                <image-wrapper button-label="{{ __('admin::app.catalog.products.add-image-btn-title') }}" input-name="favicon" :multiple="false" :images='"{{ $channel->favicon_url }}"'></image-wrapper>
+                                
+                                <span class="control-info mt-10">{{ __('admin::app.settings.channels.favicon-size') }}</span> 
                             </div>
 
                         </div>
@@ -222,7 +226,7 @@
                     @endphp
 
                     {{-- home page seo --}}
-                    <accordian :title="'{{ __('admin::app.settings.channels.seo') }}'" :active="true">
+                    <accordian title="{{ __('admin::app.settings.channels.seo') }}" :active="true">
                         <div slot="body">
                             <div class="control-group" :class="[errors.has('{{$locale}}[seo_title]') ? 'has-error' : '']">
                                 <label for="seo_title" class="required">
@@ -294,18 +298,18 @@
 @stop
 
 @push('scripts')
-    <script src="{{ asset('vendor/webkul/admin/assets/js/tinyMCE/tinymce.min.js') }}"></script>
+    @include('admin::layouts.tinymce')
 
     <script>
         $(document).ready(function () {
-            tinymce.init({
+            tinyMCEHelper.initTinyMCE({
                 selector: 'textarea#home_page_content,textarea#footer_content',
                 height: 200,
                 width: "100%",
                 plugins: 'image imagetools media wordcount save fullscreen code table lists link hr',
                 toolbar1: 'formatselect | bold italic strikethrough forecolor backcolor link hr | alignleft aligncenter alignright alignjustify  | numlist bullist outdent indent  | removeformat | code | table',
                 image_advtab: true,
-                valid_elements : '*[*]'
+                valid_elements : '*[*]',
             });
         });
     </script>

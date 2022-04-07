@@ -9,20 +9,6 @@ use Webkul\Velocity\Repositories\CategoryRepository as VelocityCategoryRepositor
 class CategoryController extends Controller
 {
     /**
-     * Category Repository object
-     *
-     * @var \Webkul\Category\Repositories\CategoryRepository
-    */
-    protected $categoryRepository;
-
-    /**
-     * VelocityCategory Repository object
-     *
-     * @var \Webkul\Velocity\Repositories\CategoryRepository
-    */
-    protected $velocityCategoryRepository;
-
-    /**
      * Create a new controller instance.
      *
      * @param  \Webkul\Category\Repositories\CategoryRepository  $categoryRepository;
@@ -30,14 +16,10 @@ class CategoryController extends Controller
      * @return void
      */
     public function __construct(
-        CategoryRepository $categoryRepository,
-        VelocityCategoryRepository $velocityCategoryRepository
+        protected CategoryRepository $categoryRepository,
+        protected VelocityCategoryRepository $velocityCategoryRepository
     )
     {
-        $this->categoryRepository = $categoryRepository;
-
-        $this->velocityCategoryRepository = $velocityCategoryRepository;
-
         $this->_config = request('_config');
     }
     /**
@@ -125,14 +107,10 @@ class CategoryController extends Controller
         try {
             $this->velocityCategoryRepository->delete($id);
 
-            session()->flash('success', trans('admin::app.response.delete-success', ['name' => 'Category Menu']));
+            return response()->json(['message' => trans('admin::app.response.delete-success', ['name' => 'Category Menu'])]);
+        } catch (\Exception $e) {}
 
-            return response()->json(['message' => true], 200);
-        } catch (\Exception $e) {
-            session()->flash('error', trans('admin::app.response.delete-failed', ['name' => 'Category Menu']));
-        }
-
-        return response()->json(['message' => false], 400);
+        return response()->json(['message' => trans('admin::app.response.delete-failed', ['name' => 'Category Menu'])], 500);
     }
 
     /**

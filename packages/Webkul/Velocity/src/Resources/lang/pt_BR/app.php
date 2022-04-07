@@ -266,6 +266,7 @@ return [
         'view-all-reviews' => 'Ver todos os comentários',
         'recently-viewed' => 'Produtos vistos recentemente',
         'be-first-review' => 'Seja o primeiro a escrever um comentário',
+        'tax-inclusive' => 'Inclusive of all taxes',
     ],
 
     'shop' => [
@@ -301,6 +302,9 @@ return [
         'wishlist' => [
             'add-wishlist-text' => 'Adicionar produto à lista de desejos',
             'remove-wishlist-text' => 'Remover produto da lista de desejos',
+        ],
+        'overlay-loader' => [
+            'message' => 'Em progresso',
         ],
     ],
 

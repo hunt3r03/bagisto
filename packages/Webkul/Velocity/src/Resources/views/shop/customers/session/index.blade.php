@@ -56,9 +56,7 @@
                                     value="{{ old('email') }}"
                                     data-vv-as="&quot;{{ __('shop::app.customer.login-form.email') }}&quot;" />
 
-                                <span class="control-error" v-if="errors.has('email')">
-                                    @{{ errors.first('email') }}
-                                </span>
+                                <span class="control-error" v-if="errors.has('email')" v-text="errors.first('email')"></span>
                             </div>
 
                             <div class="form-group" :class="[errors.has('password') ? 'has-error' : '']">
@@ -70,16 +68,15 @@
                                     type="password"
                                     class="form-style"
                                     name="password"
+                                    id="password"
                                     v-validate="'required'"
                                     value="{{ old('password') }}"
                                     data-vv-as="&quot;{{ __('shop::app.customer.login-form.password') }}&quot;" />
+                                <input type="checkbox" onclick="myFunction()" id="shoPassword" class="show-password"> {{ __('shop::app.customer.login-form.show-password') }}  
+                                <span class="control-error" v-if="errors.has('password')" v-text="errors.first('password')"></span>
 
-                                <span class="control-error" v-if="errors.has('password')">
-                                    @{{ errors.first('password') }}
-                                </span>
-
-                                <a href="{{ route('customer.forgot-password.create') }}" class="float-right">
-                                    {{ __('shop::app.customer.login-form.forgot_pass') }}
+                                <a href="{{ route('customer.forgot-password.create') }}" class=" show-password float-right">
+                                    {{ __('shop::app.customer.login-form.forgot_pass') }}  
                                 </a>
 
                                 <div class="mt10">
@@ -89,6 +86,12 @@
                                         @endif
                                     @endif
                                 </div>
+                            </div>
+
+                            <div class="form-group">
+
+                                {!! Captcha::render() !!}
+
                             </div>
 
                             {!! view_render_event('bagisto.shop.customers.login_form_controls.after') !!}
@@ -103,3 +106,28 @@
         {!! view_render_event('bagisto.shop.customers.login.after') !!}
     </div>
 @endsection
+
+@push('scripts')
+
+{!! Captcha::renderJS() !!}
+
+<script>
+    $(function(){       
+        $(":input[name=email]").focus();
+    });
+
+        function myFunction() {
+            var x = document.getElementById("password");
+            if (x.type === "password") {
+                x.type = "text";
+            } else {
+                x.type = "password";
+            }
+        }
+    
+    </script>
+
+@endpush
+
+
+

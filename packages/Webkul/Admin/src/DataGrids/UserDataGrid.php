@@ -4,18 +4,34 @@ namespace Webkul\Admin\DataGrids;
 
 use Illuminate\Support\Facades\DB;
 use Webkul\Ui\DataGrid\DataGrid;
+use Illuminate\Support\Facades\Storage;
 
 class UserDataGrid extends DataGrid
 {
+    /**
+     * Index.
+     *
+     * @var string
+     */
     protected $index = 'user_id';
 
+    /**
+     * Sort order.
+     *
+     * @var string
+     */
     protected $sortOrder = 'desc';
 
+    /**
+     * Prepare query builder.
+     *
+     * @return void
+     */
     public function prepareQueryBuilder()
     {
         $queryBuilder = DB::table('admins as u')
             ->leftJoin('roles as ro', 'u.role_id', '=', 'ro.id')
-            ->addSelect('u.id as user_id', 'u.name as user_name', 'u.status', 'u.email', 'ro.name as role_name');
+            ->addSelect('u.id as user_id', 'u.name as user_name', 'u.image as user_image', 'u.status', 'u.email', 'ro.name as role_name');
 
         $this->addFilter('user_id', 'u.id');
         $this->addFilter('user_name', 'u.name');
@@ -25,6 +41,11 @@ class UserDataGrid extends DataGrid
         $this->setQueryBuilder($queryBuilder);
     }
 
+    /**
+     * Add columns.
+     *
+     * @return void
+     */
     public function addColumns()
     {
         $this->addColumn([
@@ -43,6 +64,13 @@ class UserDataGrid extends DataGrid
             'searchable' => true,
             'sortable'   => true,
             'filterable' => true,
+            'closure'  => function ($row) {
+                if ($row->user_image) {
+                    return '<div class="avatar"><img src="' . Storage::url($row->user_image) . '"></div>' . $row->user_name;
+                } else {
+                    return '<div class="avatar"><span class="icon profile-pic-icon"></span></div>' . $row->user_name;
+                }
+            },
         ]);
 
         $this->addColumn([
@@ -52,7 +80,7 @@ class UserDataGrid extends DataGrid
             'searchable' => true,
             'sortable'   => true,
             'filterable' => true,
-            'wrapper'    => function($value) {
+            'closure'    => function ($value) {
                 if ($value->status == 1) {
                     return trans('admin::app.datagrid.active');
                 } else {
@@ -80,6 +108,11 @@ class UserDataGrid extends DataGrid
         ]);
     }
 
+    /**
+     * Prepare actions.
+     *
+     * @return void
+     */
     public function prepareActions()
     {
         $this->addAction([

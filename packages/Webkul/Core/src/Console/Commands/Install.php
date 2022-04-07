@@ -53,9 +53,9 @@ class Install extends Command
         $result = $this->call('db:seed');
         $this->info($result);
 
-        // running `php artisan vendor:publish --all`
+        // running `php artisan bagisto:publish --force`
         $this->warn('Step: Publishing assets and configurations...');
-        $result = $this->call('vendor:publish', ['--all']);
+        $result = $this->call('bagisto:publish', ['--force' => true]);
         $this->info($result);
 
         // running `php artisan storage:link`
@@ -72,6 +72,15 @@ class Install extends Command
         $this->warn('Step: Composer autoload...');
         $result = shell_exec('composer dump-autoload');
         $this->info($result);
+
+        // removing the installer directory
+        if (is_dir('public/installer')) {
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                shell_exec('rmdir /s/q public\\installer');
+            } else {
+                shell_exec('rm -rf public/installer');
+            }
+        }
 
         // final information
         $this->info('-----------------------------');

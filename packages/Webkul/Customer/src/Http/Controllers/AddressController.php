@@ -2,27 +2,24 @@
 
 namespace Webkul\Customer\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Webkul\Customer\Http\Requests\CustomerAddressRequest;
 use Webkul\Customer\Repositories\CustomerAddressRepository;
-use Webkul\Customer\Rules\VatIdRule;
-use Auth;
 
 class AddressController extends Controller
 {
     /**
-     * Contains route related configuration
+     * Contains route related configuration.
      *
      * @var array
      */
     protected $_config;
 
     /**
-     * CustomerAddressRepository object
+     * Current customer.
      *
-     * @var \Webkul\Customer\Repositories\CustomerAddressRepository
+     * @var \Webkul\Customer\Models\Customer
      */
-    protected $customerAddressRepository;
+    protected $customer;
 
     /**
      * Create a new controller instance.
@@ -30,19 +27,15 @@ class AddressController extends Controller
      * @param  \Webkul\Customer\Repositories\CustomerAddressRepository  $customerAddressRepository
      * @return void
      */
-    public function __construct(CustomerAddressRepository $customerAddressRepository)
+    public function __construct(protected CustomerAddressRepository $customerAddressRepository)
     {
-        $this->middleware('customer');
-
         $this->_config = request('_config');
-
-        $this->customerAddressRepository = $customerAddressRepository;
 
         $this->customer = auth()->guard('customer')->user();
     }
 
     /**
-     * Address Route index page
+     * Address route index page.
      *
      * @return \Illuminate\View\View
      */
@@ -52,7 +45,7 @@ class AddressController extends Controller
     }
 
     /**
-     * Show the address create form
+     * Show the address create form.
      *
      * @return \Illuminate\View\View
      */
@@ -68,29 +61,12 @@ class AddressController extends Controller
      *
      * @return view
      */
-    public function store()
+    public function store(CustomerAddressRequest $request)
     {
-        request()->merge(['address1' => implode(PHP_EOL, array_filter(request()->input('address1')))]);
+        $data = $request->all();
 
-        $data = collect(request()->input())->except('_token')->toArray();
-
-        $this->validate(request(), [
-            'company_name' => 'string',
-            'first_name'   => 'string|required',
-            'last_name'    => 'string|required',
-            'address1'     => 'string|required',
-            'country'      => 'string|required',
-            'state'        => 'string|required',
-            'city'         => 'string|required',
-            'postcode'     => 'required',
-            'phone'        => 'required',
-            'vat_id'       => new VatIdRule(),
-        ]);
-
-        $cust_id['customer_id'] = $this->customer->id;
-        $cust_id['first_name'] = $this->customer->first_name;
-        $cust_id['last_name'] = $this->customer->last_name;
-        $data = array_merge($cust_id, $data);
+        $data['customer_id'] = $this->customer->id;
+        $data['address1'] = implode(PHP_EOL, array_filter(request()->input('address1')));
 
         if ($this->customer->addresses->count() == 0) {
             $data['default_address'] = 1;
@@ -100,15 +76,15 @@ class AddressController extends Controller
             session()->flash('success', trans('shop::app.customer.account.address.create.success'));
 
             return redirect()->route($this->_config['redirect']);
-        } else {
-            session()->flash('error', trans('shop::app.customer.account.address.create.error'));
-
-            return redirect()->back();
         }
+
+        session()->flash('error', trans('shop::app.customer.account.address.create.error'));
+
+        return redirect()->back();
     }
 
     /**
-     * For editing the existing addresses of current logged in customer
+     * For editing the existing addresses of current logged in customer.
      *
      * @return \Illuminate\View\View
      */
@@ -116,7 +92,7 @@ class AddressController extends Controller
     {
         $address = $this->customerAddressRepository->findOneWhere([
             'id'          => $id,
-            'customer_id' => auth()->guard('customer')->user()->id,
+            'customer_id' => $this->customer->id,
         ]);
 
         if (! $address) {
@@ -124,7 +100,7 @@ class AddressController extends Controller
         }
 
         return view($this->_config['view'], array_merge(compact('address'), [
-            'defaultCountry' => config('app.default_country')
+            'defaultCountry' => config('app.default_country'),
         ]));
     }
 
@@ -134,24 +110,11 @@ class AddressController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update($id)
+    public function update($id, CustomerAddressRequest $request)
     {
-        request()->merge(['address1' => implode(PHP_EOL, array_filter(request()->input('address1')))]);
+        $data = $request->all();
 
-        $this->validate(request(), [
-            'company_name' => 'string',
-            'first_name'   => 'string|required',
-            'last_name'    => 'string|required',
-            'address1'     => 'string|required',
-            'country'      => 'string|required',
-            'state'        => 'string|required',
-            'city'         => 'string|required',
-            'postcode'     => 'required',
-            'phone'        => 'required',
-            'vat_id'       => new VatIdRule(),
-        ]);
-
-        $data = collect(request()->input())->except('_token')->toArray();
+        $data['address1'] = implode(PHP_EOL, array_filter(request()->input('address1')));
 
         $addresses = $this->customer->addresses;
 
@@ -172,7 +135,7 @@ class AddressController extends Controller
 
     /**
      * To change the default address or make the default address,
-     * by default when first address is created will be the default address
+     * by default when first address is created will be the default address.
      *
      * @return \Illuminate\Http\Response
      */
@@ -192,7 +155,7 @@ class AddressController extends Controller
     }
 
     /**
-     * Delete address of the current customer
+     * Delete address of the current customer.
      *
      * @param  int  $id
      * @return \Illuminate\Http\Response
@@ -201,7 +164,7 @@ class AddressController extends Controller
     {
         $address = $this->customerAddressRepository->findOneWhere([
             'id'          => $id,
-            'customer_id' => auth()->guard('customer')->user()->id,
+            'customer_id' => $this->customer->id,
         ]);
 
         if (! $address) {

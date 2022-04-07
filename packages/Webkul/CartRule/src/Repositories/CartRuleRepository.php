@@ -3,65 +3,17 @@
 namespace Webkul\CartRule\Repositories;
 
 use Illuminate\Container\Container as App;
-use Webkul\Core\Eloquent\Repository;
+use Illuminate\Support\Facades\Event;
 use Webkul\Attribute\Repositories\AttributeFamilyRepository;
 use Webkul\Attribute\Repositories\AttributeRepository;
 use Webkul\Category\Repositories\CategoryRepository;
-use Webkul\Tax\Repositories\TaxCategoryRepository;
+use Webkul\Core\Eloquent\Repository;
 use Webkul\Core\Repositories\CountryRepository;
 use Webkul\Core\Repositories\CountryStateRepository;
+use Webkul\Tax\Repositories\TaxCategoryRepository;
 
 class CartRuleRepository extends Repository
 {
-    /**
-     * AttributeFamilyRepository object
-     *
-     * @var \Webkul\Attribute\Repositories\AttributeFamilyRepository
-     */
-    protected $attributeFamilyRepository;
-
-    /**
-     * AttributeRepository object
-     *
-     * @var \Webkul\Attribute\Repositories\AttributeRepository
-     */
-    protected $attributeRepository;
-
-    /**
-     * CategoryRepository class
-     *
-     * @var \Webkul\Category\Repositories\CategoryRepository
-     */
-    protected $categoryRepository;
-
-    /**
-     * CartRuleCouponRepository object
-     *
-     * @var \Webkul\CartRule\Repositories\CartRuleCouponRepository
-     */
-    protected $cartRuleCouponRepository;
-
-    /**
-     * TaxCategoryRepository class
-     *
-     * @var \Webkul\Tax\Repositories\TaxCategoryRepository
-     */
-    protected $taxCategoryRepository;
-
-    /**
-     * CountryRepository class
-     *
-     * @var \Webkul\Core\Repositories\CountryRepository
-     */
-    protected $countryRepository;
-
-    /**
-     * CountryStateRepository class
-     *
-     * @var \Webkul\Core\Repositories\CountryStateRepository
-     */
-    protected $countryStateRepository;
-
     /**
      * Create a new repository instance.
      *
@@ -76,30 +28,16 @@ class CartRuleRepository extends Repository
      * @return void
      */
     public function __construct(
-        AttributeFamilyRepository $attributeFamilyRepository,
-        AttributeRepository $attributeRepository,
-        CategoryRepository $categoryRepository,
-        CartRuleCouponRepository $cartRuleCouponRepository,
-        TaxCategoryRepository $taxCategoryRepository,
-        CountryRepository $countryRepository,
-        CountryStateRepository $countryStateRepository,
+        protected AttributeFamilyRepository $attributeFamilyRepository,
+        protected AttributeRepository $attributeRepository,
+        protected CategoryRepository $categoryRepository,
+        protected CartRuleCouponRepository $cartRuleCouponRepository,
+        protected TaxCategoryRepository $taxCategoryRepository,
+        protected CountryRepository $countryRepository,
+        protected CountryStateRepository $countryStateRepository,
         App $app
     )
     {
-        $this->attributeFamilyRepository = $attributeFamilyRepository;
-
-        $this->attributeRepository = $attributeRepository;
-
-        $this->categoryRepository = $categoryRepository;
-
-        $this->cartRuleCouponRepository = $cartRuleCouponRepository;
-
-        $this->taxCategoryRepository = $taxCategoryRepository;
-
-        $this->countryRepository = $countryRepository;
-
-        $this->countryStateRepository = $countryStateRepository;
-
         parent::__construct($app);
     }
 
@@ -108,7 +46,7 @@ class CartRuleRepository extends Repository
      *
      * @return mixed
      */
-    function model()
+    public function model()
     {
         return 'Webkul\CartRule\Contracts\CartRule';
     }
@@ -119,6 +57,8 @@ class CartRuleRepository extends Repository
      */
     public function create(array $data)
     {
+        Event::dispatch('promotions.cart_rule.create.before');
+
         $data['starts_from'] = isset($data['starts_from']) && $data['starts_from'] ? $data['starts_from'] : null;
 
         $data['ends_till'] = isset($data['ends_till']) && $data['ends_till'] ? $data['ends_till'] : null;
@@ -142,6 +82,8 @@ class CartRuleRepository extends Repository
             ]);
         }
 
+        Event::dispatch('promotions.cart_rule.create.after', $cartRule);
+
         return $cartRule;
     }
 
@@ -151,8 +93,10 @@ class CartRuleRepository extends Repository
      * @param  string  $attribute
      * @return \Webkul\CartRule\Contracts\CartRule
      */
-    public function update(array $data, $id, $attribute = "id")
+    public function update(array $data, $id, $attribute = 'id')
     {
+        Event::dispatch('promotions.cart_rule.update.before', $id);
+
         $data['starts_from'] = $data['starts_from'] ?: null;
 
         $data['ends_till'] = $data['ends_till'] ?: null;
@@ -203,11 +147,28 @@ class CartRuleRepository extends Repository
             $cartRuleCoupon = $this->cartRuleCouponRepository->deleteWhere(['is_primary' => 1, 'cart_rule_id' => $cartRule->id]);
         }
 
+        Event::dispatch('promotions.cart_rule.update.after', $cartRule);
+
         return $cartRule;
     }
 
     /**
-     * Returns attributes for cart rule conditions
+     * Delete.
+     *
+     * @param  $id
+     * @return int
+     */
+    public function delete($id)
+    {
+        Event::dispatch('promotions.cart_rule.delete.before', $id);
+
+        parent::delete($id);
+
+        Event::dispatch('promotions.cart_rule.delete.after', $id);
+    }
+
+    /**
+     * Returns attributes for cart rule conditions.
      *
      * @return array
      */
@@ -250,8 +211,8 @@ class CartRuleRepository extends Repository
                         'type'    => 'select',
                         'options' => $this->getCountries(),
                         'label'   => trans('admin::app.promotions.cart-rules.shipping-country'),
-                    ]
-                ]
+                    ],
+                ],
             ], [
                 'key'      => 'cart_item',
                 'label'    => trans('admin::app.promotions.cart-rules.cart-item-attribute'),
@@ -276,8 +237,8 @@ class CartRuleRepository extends Repository
                         'key'   => 'cart_item|additional',
                         'type'  => 'text',
                         'label' => trans('admin::app.promotions.cart-rules.additional'),
-                    ]
-                ]
+                    ],
+                ],
             ], [
                 'key'      => 'product',
                 'label'    => trans('admin::app.promotions.cart-rules.product-attribute'),
@@ -302,9 +263,9 @@ class CartRuleRepository extends Repository
                         'type'    => 'select',
                         'label'   => trans('admin::app.promotions.cart-rules.attribute_family'),
                         'options' => $this->getAttributeFamilies(),
-                    ]
-                ]
-            ]
+                    ],
+                ],
+            ],
         ];
 
         foreach ($this->attributeRepository->findWhereNotIn('type', ['textarea', 'image', 'file']) as $attribute) {
@@ -350,7 +311,7 @@ class CartRuleRepository extends Repository
     }
 
     /**
-     * Returns all payment methods
+     * Returns all payment methods.
      *
      * @return array
      */
@@ -371,7 +332,7 @@ class CartRuleRepository extends Repository
     }
 
     /**
-     * Returns all shipping methods
+     * Returns all shipping methods.
      *
      * @return array
      */
@@ -392,7 +353,7 @@ class CartRuleRepository extends Repository
     }
 
     /**
-     * Returns all countries
+     * Returns all countries.
      *
      * @return array
      */
@@ -411,7 +372,7 @@ class CartRuleRepository extends Repository
     }
 
     /**
-     * Returns all attribute families
+     * Returns all attribute families.
      *
      * @return array
      */
@@ -430,7 +391,7 @@ class CartRuleRepository extends Repository
     }
 
     /**
-     * Returns all countries
+     * Returns all countries.
      *
      * @return array
      */
@@ -449,7 +410,7 @@ class CartRuleRepository extends Repository
     }
 
     /**
-     * Retrieve all grouped states by country code
+     * Retrieve all grouped states by country code.
      *
      * @return array
      */

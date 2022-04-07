@@ -9,27 +9,6 @@ use Webkul\CatalogRule\Repositories\CatalogRuleProductPriceRepository;
 class CatalogRuleProductPrice
 {
     /**
-     * CatalogRuleProductPriceRepository object
-     *
-     * @var \Webkul\CatalogRule\Repositories\CatalogRuleProductPriceRepository
-     */
-    protected $catalogRuleProductPriceRepository;
-
-    /**
-     * CatalogRuleProduct object
-     *
-     * @var \Webkul\CatalogRule\Helpers\CatalogRuleProduct
-     */
-    protected $catalogRuleProductHelper;
-
-    /**
-     * CustomerGroupRepository object
-     *
-     * @var \Webkul\Customer\Repositories\CustomerGroupRepository
-     */
-    protected $customerGroupRepository;
-
-    /**
      * Create a new helper instance.
      *
      * @param  \Webkul\Attribute\Repositories\CatalogRuleProductPriceRepository  $catalogRuleProductPriceRepository
@@ -38,28 +17,11 @@ class CatalogRuleProductPrice
      * @return void
      */
     public function __construct(
-        CatalogRuleProductPriceRepository $catalogRuleProductPriceRepository,
-        CatalogRuleProduct $catalogRuleProductHelper,
-        CustomerGroupRepository $customerGroupRepository
+        protected CatalogRuleProductPriceRepository $catalogRuleProductPriceRepository,
+        protected CatalogRuleProduct $catalogRuleProductHelper,
+        protected CustomerGroupRepository $customerGroupRepository
     )
     {
-        $this->catalogRuleProductPriceRepository = $catalogRuleProductPriceRepository;
-
-        $this->catalogRuleProductHelper = $catalogRuleProductHelper;
-
-        $this->customerGroupRepository = $customerGroupRepository;
-    }
-
-    /**
-     * Return current logged in customer
-     *
-     * @return  \Webkul\Customer\Contracts\Customer|bool
-     */
-    public function getCurrentCustomer()
-    {
-        $guard = request()->has('token') ? 'api' : 'customer';
-
-        return auth()->guard($guard);
     }
 
     /**
@@ -198,8 +160,8 @@ class CatalogRuleProductPrice
      */
     public function getRulePrice($product)
     {
-        if ($this->getCurrentCustomer()->check()) {
-            $customerGroupId = $this->getCurrentCustomer()->user()->customer_group_id;
+        if (auth()->guard()->check()) {
+            $customerGroupId = auth()->guard()->user()->customer_group_id;
         } else {
             $customerGroup = $this->customerGroupRepository->getCustomerGuestGroup();
 

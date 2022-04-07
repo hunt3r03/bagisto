@@ -66,11 +66,23 @@ return [
                 'close' => 'غلق',
                 'time-error' => 'The to time must be greater than the from time.'
             ]
+        ],
+
+        'sales' => [
+            'bookings' => [
+                'title' => 'معلومات الحجز',
+            ]
+        ],
+
+        'datagrid' => [
+            'from' => 'من عند',
+            'to' => 'إلى',
         ]
     ],
 
     'shop' => [
         'products' => [
+            'booking-information' => 'معلومات عن الخدمة',
             'location' => 'موقعك',
             'contact' => 'مكالمة',
             'email' => 'البريد الإلكتروني',
@@ -89,6 +101,7 @@ return [
             'book-an-appointment' => 'حجز موعد',
             'date' => 'تاريخ',
             'slot' => 'فتحة',
+            'no-slots-available' => 'No slots available',
             'rent-an-item' => 'استئجار عنصر',
             'choose-rent-option' => 'اختر خيار الإيجار',
             'daily-basis' => 'الأساس اليومي',

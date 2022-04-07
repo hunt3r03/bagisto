@@ -51,6 +51,7 @@
                 width: 100%;
                 border-collapse: collapse;
                 text-align: left;
+                table-layout: fixed;
             }
 
             .table thead th {
@@ -82,7 +83,7 @@
                 border-right: solid 1px #d3d3d3;
             }
 
-           .sale-summary {
+            .sale-summary {
                 margin-top: 40px;
                 float: right;
             }
@@ -127,29 +128,45 @@
                         <h1 class="text-center">{{ __('admin::app.sales.invoices.invoice') }}</h1>
                     </div>
                 </div>
-                @if (core()->getConfigData('sales.orderSettings.invoice_slip_design.logo'))
+
+                @if (core()->getConfigData('sales.invoice_setttings.invoice_slip_design.logo'))
                     <div class="image">
-                        <img class="logo" src="{{ Storage::url(core()->getConfigData('sales.orderSettings.invoice_slip_design.logo')) }}"/>
+                        <img class="logo" src="{{ Storage::url(core()->getConfigData('sales.invoice_setttings.invoice_slip_design.logo')) }}"/>
                     </div>
                 @endif
+
                 <div class="merchant-details">
                     <div><span class="merchant-details-title">{{ core()->getConfigData('sales.shipping.origin.store_name') ? core()->getConfigData('sales.shipping.origin.store_name') : '' }}</span></div>
+
                     <div>{{ core()->getConfigData('sales.shipping.origin.address1') ? core()->getConfigData('sales.shipping.origin.address1') : '' }}</div>
+
                     <div>
                         <span>{{ core()->getConfigData('sales.shipping.origin.zipcode') ? core()->getConfigData('sales.shipping.origin.zipcode') : '' }}</span>
-                        <span>{{ core()->getConfigData('sales.shipping.origin.city') ? core()->getConfigData('sales.shipping.origin.city') : '' }}</span></div>
+                        <span>{{ core()->getConfigData('sales.shipping.origin.city') ? core()->getConfigData('sales.shipping.origin.city') : '' }}</span>
+                    </div>
+
                     <div>{{ core()->getConfigData('sales.shipping.origin.state') ? core()->getConfigData('sales.shipping.origin.state') : '' }}</div>
+
                     <div>{{ core()->getConfigData('sales.shipping.origin.country') ?  core()->country_name(core()->getConfigData('sales.shipping.origin.country')) : '' }}</div>
                 </div>
+
                 <div class="merchant-details">
                     @if (core()->getConfigData('sales.shipping.origin.contact'))
-                        <div><span class="merchant-details-title">{{ __('admin::app.admin.system.contact-number') }}:</span> {{ core()->getConfigData('sales.shipping.origin.contact') }}</div>
+                        <div>
+                            <span class="merchant-details-title">{{ __('admin::app.admin.system.contact-number') }}:</span> {{ core()->getConfigData('sales.shipping.origin.contact') }}
+                        </div>
                     @endif
+
                     @if (core()->getConfigData('sales.shipping.origin.vat_number'))
-                        <div><span class="merchant-details-title">{{ __('admin::app.admin.system.vat-number') }}:</span> {{ core()->getConfigData('sales.shipping.origin.vat_number') }}</div>
+                        <div>
+                            <span class="merchant-details-title">{{ __('admin::app.admin.system.vat-number') }}:</span> {{ core()->getConfigData('sales.shipping.origin.vat_number') }}
+                        </div>
                     @endif
+
                     @if (core()->getConfigData('sales.shipping.origin.bank_details'))
-                        <div><span class="merchant-details-title">{{ __('admin::app.admin.system.bank-details') }}:</span> {{ core()->getConfigData('sales.shipping.origin.bank_details') }}</div>
+                        <div>
+                            <span class="merchant-details-title">{{ __('admin::app.admin.system.bank-details') }}:</span> {{ core()->getConfigData('sales.shipping.origin.bank_details') }}
+                        </div>
                     @endif
                 </div>
             </div>
@@ -157,7 +174,12 @@
             <div class="invoice-summary">
                 <div class="row">
                     <span class="label">{{ __('admin::app.sales.invoices.invoice-id') }} -</span>
-                    <span class="value">#{{ $invoice->id }}</span>
+                    <span class="value">#{{ $invoice->increment_id ?? $invoice->id }}</span>
+                </div>
+
+                <div class="row">
+                    <span class="label">{{ __('admin::app.sales.invoices.date') }} -</span>
+                    <span class="value">{{ core()->formatDate($invoice->created_at, 'd-m-Y') }}</span>
                 </div>
 
                 <div class="row">
@@ -166,15 +188,23 @@
                 </div>
 
                 <div class="row">
-                    <span class="label">{{ __('admin::app.sales.invoices.order-date') }} </span>
+                    <span class="label">{{ __('admin::app.sales.invoices.order-date') }} -</span>
                     <span class="value">{{ $invoice->created_at->format('d-m-Y') }}</span>
                 </div>
+
+                @if ($invoice->hasPaymentTerm())
+                    <div class="row">
+                        <span class="label">{{ __('admin::app.admin.system.payment-terms') }} -</span>
+                        <span class="value">{{ $invoice->getFormattedPaymentTerm() }}</span>
+                    </div>
+                @endif
 
                 <div class="table address">
                     <table>
                         <thead>
                             <tr>
                                 <th style="width: 50%">{{ __('admin::app.sales.invoices.bill-to') }}</th>
+
                                 @if ($invoice->order->shipping_address)
                                     <th>{{ __('admin::app.sales.invoices.ship-to') }}</th>
                                 @endif
@@ -252,8 +282,8 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>{{ __('admin::app.sales.orders.SKU') }}</th>
-                                <th>{{ __('admin::app.sales.orders.product-name') }}</th>
+                                <th class="text-center">{{ __('admin::app.sales.orders.SKU') }}</th>
+                                <th class="text-center">{{ __('admin::app.sales.orders.product-name') }}</th>
                                 <th class="text-center">{{ __('admin::app.sales.orders.price') }}</th>
                                 <th class="text-center">{{ __('admin::app.sales.orders.qty') }}</th>
                                 <th class="text-center">{{ __('admin::app.sales.orders.subtotal') }}</th>
@@ -263,11 +293,11 @@
                         </thead>
 
                         <tbody>
-
                             @foreach ($invoice->items as $item)
                                 <tr>
-                                    <td>{{ $item->getTypeInstance()->getOrderedItem($item)->sku }}</td>
-                                    <td>
+                                    <td class="text-center">{{ $item->getTypeInstance()->getOrderedItem($item)->sku }}</td>
+
+                                    <td class="text-center">
                                         {{ $item->name }}
 
                                         @if (isset($item->additional['attributes']))
@@ -280,14 +310,18 @@
                                             </div>
                                         @endif
                                     </td>
-                                    <td>{!! core()->formatBasePrice($item->base_price, true) !!}</td>
+
+                                    <td class="text-center">{!! core()->formatBasePrice($item->base_price, true) !!}</td>
+
                                     <td class="text-center">{{ $item->qty }}</td>
+
                                     <td class="text-center">{!! core()->formatBasePrice($item->base_total, true) !!}</td>
+
                                     <td class="text-center">{!! core()->formatBasePrice($item->base_tax_amount, true) !!}</td>
+
                                     <td class="text-center">{!! core()->formatBasePrice($item->base_total + $item->base_tax_amount, true) !!}</td>
                                 </tr>
                             @endforeach
-
                         </tbody>
                     </table>
                 </div>
@@ -319,12 +353,17 @@
                     </tr>
 
                     <tr>
-                        <td><strong>{{ __('admin::app.sales.orders.grand-total') }}</strong></td>
-                        <td><strong>-</strong></td>
-                        <td><strong>{!! core()->formatBasePrice($invoice->base_grand_total, true) !!}</strong></td>
+                        <td colspan="3">
+                            <hr>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>{{ __('admin::app.sales.orders.grand-total') }}</td>
+                        <td>-</td>
+                        <td>{!! core()->formatBasePrice($invoice->base_grand_total, true) !!}</td>
                     </tr>
                 </table>
-
             </div>
         </div>
     </body>

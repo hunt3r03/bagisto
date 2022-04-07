@@ -1,8 +1,10 @@
 .env
+.env.testing
 .idea
 .php_cs.cache
 .vscode
 .vagrant
+/stubs
 /data
 /db
 /docker-compose-collection
@@ -19,7 +21,7 @@ package-lock.json
 /public/storage
 /public/themes
 /public/vendor
-/resources/lang/vendor
+/lang/vendor
 /storage/*.key
 /storage/dcc-data/
 /vendor

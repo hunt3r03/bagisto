@@ -13,13 +13,6 @@ class ProductRepository extends Repository
 {
     use CacheableRepository;
 
-     /**
-     * AttributeRepository object
-     *
-     * @var \Webkul\Attribute\Repositories\AttributeRepository
-     */
-    protected $attributeRepository;
-
     /**
      * Create a new controller instance.
      *
@@ -28,12 +21,10 @@ class ProductRepository extends Repository
      * @return void
      */
     public function __construct(
-        AttributeRepository $attributeRepository,
+        protected AttributeRepository $attributeRepository,
         App $app
     )
     {
-        $this->attributeRepository = $attributeRepository;
-
         parent::__construct($app);
     }
 
@@ -56,9 +47,9 @@ class ProductRepository extends Repository
     public function getFeaturedProducts($count)
     {
         $results = app(ProductFlatRepository::class)->scopeQuery(function($query) {
-            $channel = request()->get('channel') ?: (core()->getCurrentChannelCode() ?: core()->getDefaultChannelCode());
+            $channel = core()->getRequestedChannelCode();
 
-            $locale = request()->get('locale') ?: app()->getLocale();
+            $locale = core()->getRequestedLocaleCode();
 
             return $query->distinct()
                          ->addSelect('product_flat.*')
@@ -82,9 +73,9 @@ class ProductRepository extends Repository
     public function getNewProducts($count)
     {
         $results = app(ProductFlatRepository::class)->scopeQuery(function($query) {
-            $channel = request()->get('channel') ?: (core()->getCurrentChannelCode() ?: core()->getDefaultChannelCode());
+            $channel = core()->getRequestedChannelCode();
 
-            $locale = request()->get('locale') ?: app()->getLocale();
+            $locale = core()->getRequestedLocaleCode();
 
             return $query->distinct()
                          ->addSelect('product_flat.*')
@@ -112,9 +103,9 @@ class ProductRepository extends Repository
         $categoryId = $params['category'] ?? '';
 
         $results = app(ProductFlatRepository::class)->scopeQuery(function($query) use($term, $categoryId, $params) {
-            $channel = request()->get('channel') ?: (core()->getCurrentChannelCode() ?: core()->getDefaultChannelCode());
+            $channel = core()->getRequestedChannelCode();
 
-            $locale = request()->get('locale') ?: app()->getLocale();
+            $locale = core()->getRequestedLocaleCode();
 
             if (! core()->getConfigData('catalog.products.homepage.out_of_stock_items')) {
                 $query = app('Webkul\Product\Repositories\ProductRepository')->checkOutOfStockItem($query);

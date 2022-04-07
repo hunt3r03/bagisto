@@ -66,11 +66,23 @@ return [
                 'close' => 'Close',
                 'time-error' => 'The to time must be greater than the from time.'
             ]
+        ],
+
+        'sales' => [
+            'bookings' => [
+                'title' => 'Bookings',
+            ]
+        ],
+
+        'datagrid' => [
+            'from' => 'From',
+            'to' => 'To'
         ]
     ],
 
     'shop' => [
         'products' => [
+            'booking-information' => 'Booking Information',
             'location' => 'Location',
             'contact' => 'Contact',
             'email' => 'Email',
@@ -89,6 +101,7 @@ return [
             'book-an-appointment' => 'Book an Appointment',
             'date' => 'Date',
             'slot' => 'Slot',
+            'no-slots-available' => 'No slots available',
             'rent-an-item' => 'Rent an Item',
             'choose-rent-option' => 'Choose Rent Option',
             'daily-basis' => 'Daily Basis',

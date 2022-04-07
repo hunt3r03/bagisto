@@ -6,18 +6,17 @@
 
 @section('page-detail-wrapper')
     <div class="reviews-head mb20">
-        <span class="back-icon">
-            <a href="{{ route('customer.account.index') }}">
-                <i class="icon icon-menu-back"></i>
-            </a>
-        </span>
-
         <span class="account-heading">{{ __('shop::app.customer.account.review.index.title') }}</span>
 
         @if (count($reviews) > 1)
             <div class="account-action float-right">
-                <a href="{{ route('customer.review.deleteall') }}" class="theme-btn light unset">
-                    {{ __('shop::app.customer.account.wishlist.deleteall') }}
+                <form id="deleteAllReviewForm" action="{{ route('customer.review.deleteall') }}" method="post">
+                    @method('delete')
+                    @csrf
+                </form>
+
+                <a href="javascript:void(0);" class="theme-btn light unset" onclick="confirm('{{ __('shop::app.customer.account.review.delete-all.confirmation-message') }}') ? document.getElementById('deleteAllReviewForm').submit() : null;">
+                    {{ __('shop::app.customer.account.review.delete-all.title') }}
                 </a>
             </div>
         @endif
@@ -28,56 +27,62 @@
     <div class="reviews-container">
         @if (! $reviews->isEmpty())
             @foreach ($reviews as $review)
-                <div class="row col-12 fs16">
-                    <div class="col-12 row">
+                <div class="row col-12 lg-card-container list-card product-card">
+                    <div class="product-image">
                         @php
                             $image = productimage()->getProductBaseImage($review->product);
                         @endphp
 
                         <a
-                            href="{{ url()->to('/').'/'.$review->product->url_key }}"
                             title="{{ $review->product->name }}"
-                            class="col-2 max-sm-img-dimention no-padding">
-                            <img class="media" src="{{ $image['small_image_url'] }}" alt=""/>
+                            href="{{ url()->to('/').'/'.$review->product->url_key }}">
+                            <img src="{{ $image['small_image_url'] }}" title="{{ $review->product->name }}">
                         </a>
+                    </div>
 
-                        <div class="col-8">
+                    <div class="product-information p-2">
+                        <div class="d-flex justify-content-between">
                             <div class="product-name">
                                 <a
-                                    class="remove-decoration"
                                     href="{{ url()->to('/').'/'.$review->product->url_key }}"
-                                    title="{{ $review->product->name }}">
-                                    {{$review->product->name}}
+                                    title="{{ $review->product->name }}" class="unset">
+
+                                    <span class="fs16">{{ $review->product->name }}</span>
                                 </a>
-                            </div>
 
-                            <star-ratings ratings="{{ $review->rating }}"></star-ratings>
+                                <star-ratings ratings="{{ $review->rating }}"></star-ratings>
 
-                            <h5 class="fw6">{{ $review->title }}</h5>
+                                <h5 class="fw6" v-pre>{{ $review->title }}</h5>
 
-                            <p>{{ $review->comment }}</p>
-                        </div>
+                                <p v-pre>{{ $review->comment }}</p>
+                            </div>  
 
-                        <div class="col-2">
-                            <a class="unset" href="{{ route('customer.review.delete', $review->id) }}">
-                                <span class="rango-delete fs24"></span>
-                                <span class="align-vertical-top">{{ __('shop::app.checkout.cart.remove') }}</span>
-                            </a>
+                            <div>
+                                <form id="deleteReviewForm" action="{{ route('customer.review.delete', $review->id) }}" method="post">
+                                    @method('delete')
+
+                                    @csrf
+                                </form>
+
+                                <a class="unset" href="javascript:void(0);" onclick="confirm('{{ __('shop::app.customer.account.review.delete.confirmation-message') }}') ? document.getElementById('deleteReviewForm').submit() : null;">
+                                    <span class="rango-delete fs24"></span>
+                                    
+                                    <span class="align-vertical-top">{{ __('shop::app.checkout.cart.remove') }}</span>
+                                </a>
+                            </div>                      
                         </div>
                     </div>
-                </div>
+                </div>               
             @endforeach
 
             <div class="bottom-toolbar">
                 {{ $reviews->links()  }}
             </div>
-            {{-- <load-more-btn></load-more-btn> --}}
         @else
             <div class="fs16">
                 {{ __('customer::app.reviews.empty') }}
             </div>
         @endif
-
     </div>
 
     {!! view_render_event('bagisto.shop.customers.account.reviews.list.after', ['reviews' => $reviews]) !!}
@@ -112,7 +117,7 @@
                         splitedParamsObject[page]
                     }
                 }
-            })
-        })()
+            });
+        })();
     </script>
 @endpush

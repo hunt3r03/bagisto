@@ -23,27 +23,16 @@ class ChannelDataGrid extends DataGrid
     protected $locale;
 
     /**
-     * ChannelRepository $channelRepository
-     *
-     * @var \Webkul\Core\Repositories\ChannelRepository
-     */
-    protected $channelRepository;
-
-    /**
      * Create a new datagrid instance.
      *
      * @param  \Webkul\Core\Repositories\ChannelRepository  $channelRepository
      * @return void
      */
-    public function __construct(
-        ChannelRepository $channelRepository
-    )
+    public function __construct(protected ChannelRepository $channelRepository)
     {
         parent::__construct();
 
-        $this->locale = request()->get('locale') ?? app()->getLocale();
-
-        $this->channelRepository = $channelRepository;
+        $this->locale = core()->getRequestedLocaleCode();
     }
 
     public function prepareQueryBuilder()

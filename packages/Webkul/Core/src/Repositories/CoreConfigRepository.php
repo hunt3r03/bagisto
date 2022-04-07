@@ -2,42 +2,47 @@
 
 namespace Webkul\Core\Repositories;
 
-use Webkul\Core\Eloquent\Repository;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Prettus\Repository\Traits\CacheableRepository;
+use Webkul\Core\Contracts\CoreConfig;
+use Webkul\Core\Eloquent\Repository;
+use Webkul\Core\Traits\CoreConfigField;
 
 class CoreConfigRepository extends Repository
 {
-    use CacheableRepository;
+    use CoreConfigField, CacheableRepository;
 
     /**
-     * Specify Model class name
+     * Specify model class name.
      *
-     * @return mixed
+     * @return string
      */
-    function model()
+    public function model(): string
     {
-        return 'Webkul\Core\Contracts\CoreConfig';
+        return CoreConfig::class;
     }
 
     /**
+     * Create.
+     *
      * @param  array  $data
      * @return \Webkul\Core\Contracts\CoreConfig
      */
     public function create(array $data)
     {
-        unset($data['_token']);
+        Event::dispatch('core.configuration.save.before');
 
         if ($data['locale'] || $data['channel']) {
-           $locale = $data['locale'];
-           $channel = $data['channel'];
+            $locale = $data['locale'];
+            $channel = $data['channel'];
 
-           unset($data['locale']);
-           unset($data['channel']);
+            unset($data['locale']);
+            unset($data['channel']);
         }
 
         foreach ($data as $method => $fieldData) {
-            $recurssiveData = $this->recuressiveArray($fieldData , $method);
+            $recurssiveData = $this->recuressiveArray($fieldData, $method);
 
             foreach ($recurssiveData as $fieldName => $value) {
                 $field = core()->getConfigField($fieldName);
@@ -47,7 +52,7 @@ class CoreConfigRepository extends Repository
                 $localeBased = isset($field['locale_based']) && $field['locale_based'] ? true : false;
 
                 if (getType($value) == 'array' && ! isset($value['delete'])) {
-                    $value = implode(",", $value);
+                    $value = implode(',', $value);
                 }
 
                 if (isset($field['channel_based']) && $field['channel_based']) {
@@ -89,9 +94,11 @@ class CoreConfigRepository extends Repository
                     ]);
                 } else {
                     foreach ($coreConfigValue as $coreConfig) {
-                        Storage::delete($coreConfig['value']);
+                        if (request()->hasFile($fieldName)) {
+                            Storage::delete($coreConfig['value']);
+                        }
 
-                        if(isset($value['delete'])) {
+                        if (isset($value['delete'])) {
                             $this->model->destroy($coreConfig['id']);
                         } else {
                             $coreConfig->update([
@@ -105,14 +112,19 @@ class CoreConfigRepository extends Repository
                 }
             }
         }
+
+        Event::dispatch('core.configuration.save.after');
     }
 
     /**
+     * Recursive array.
+     *
      * @param  array  $formData
      * @param  string  $method
      * @return array
      */
-    public function recuressiveArray(array $formData, $method) {
+    public function recuressiveArray(array $formData, $method)
+    {
         static $data = [];
 
         static $recuressiveArrayData = [];
@@ -147,11 +159,11 @@ class CoreConfigRepository extends Repository
     }
 
     /**
-     * Return dimension of array
+     * Return dimension of the array.
      *
      * @param  array  $array
      * @return int
-    */
+     */
     public function countDim($array)
     {
         if (is_array(reset($array))) {

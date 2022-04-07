@@ -2,9 +2,9 @@
     $attributeRepository = app('\Webkul\Attribute\Repositories\AttributeFamilyRepository');
     $comparableAttributes = $attributeRepository->getComparableAttributesBelongsToFamily();
 
-    $locale = request()->get('locale') ?: app()->getLocale();
+    $locale = core()->getRequestedLocaleCode();
 
-    $attributeOptionTranslations = app('\Webkul\Attribute\Repositories\AttributeOptionTranslationRepository')->where('locale', $locale)->get()->toJson();
+    $attributeOptionTranslations = app('\Webkul\Attribute\Repositories\AttributeOptionTranslationRepository')->where('locale', $locale)->get();
 @endphp
 
 @push('scripts')
@@ -44,8 +44,8 @@
 
                     @foreach ($comparableAttributes as $attribute)
                         <tr>
-                            <td>
-                                <span class="fs16">{{ isset($attribute['name']) ? $attribute['name'] : $attribute['admin_name'] }}</span>
+                            <td class="header">
+                                <span class="fs16 font-weight-bold">{{ isset($attribute['name']) ? $attribute['name'] : $attribute['admin_name'] }}</span>
                             </td>
 
                             <td :key="`title-${index}`" v-for="(product, index) in products">
@@ -116,13 +116,18 @@
                                                 <span v-else class="fs16">__</span>
                                                 @break;
 
+                                            @case('multiselect')
+                                                <span v-if="product.product['{{ $attribute['code'] }}']" v-html="getAttributeOptions(product['{{ $attribute['code'] }}'] ? product : product.product['{{ $attribute['code'] }}'] ? product.product : null, '{{ $attribute['code'] }}', 'multiple')" class="fs16"></span>
+                                                <span v-else class="fs16">__</span>
+                                                @break
+
                                             @case ('file')
                                             @case ('image')
                                                 <a :href="`${$root.baseUrl}/${product.url_key}`" class="unset">
                                                     <img
                                                         class="image-wrapper"
                                                         onload="window.updateHeight ? window.updateHeight() : ''"
-                                                        :src="'storage/' + product.product['{{ $attribute['code'] }}']"
+                                                        :src="storageUrl + product.product['{{ $attribute['code'] }}']"
                                                         :onerror="`this.src='${$root.baseUrl}/vendor/webkul/ui/assets/images/product/large-product-placeholder.png'`"
                                                         alt=""/>
                                                 </a>
@@ -157,10 +162,11 @@
             data: function () {
                 return {
                     'products': [],
-                    'isProductListLoaded': false,
-                    'attributeOptions': JSON.parse(@json($attributeOptionTranslations)),
+                    'storageUrl': '{{ Storage::url('/') }}',
                     'isCustomer': '{{ auth()->guard('customer')->user() ? "true" : "false" }}' == "true",
-                }
+                    'isProductListLoaded': false,
+                    'attributeOptions': @json($attributeOptionTranslations),
+                };
             },
 
             mounted: function () {
@@ -203,10 +209,13 @@
                     } else {
                         this.isProductListLoaded = true;
                     }
-
                 },
 
                 'removeProductCompare': function (productId) {
+                    if (productId == 'all' && ! confirm('{{ __('shop::app.customer.compare.confirm-remove-all') }}')) {
+                        return;
+                    }
+
                     if (this.isCustomer) {
                         this.$http.delete(`${this.$root.baseUrl}/comparison?productId=${productId}`)
                         .then(response => {
@@ -215,6 +224,8 @@
                             } else {
                                 this.$set(this, 'products', this.products.filter(product => product.id != productId));
                             }
+
+                            this.$root.headerItemsCount++;
 
                             window.showAlert(`alert-${response.data.status}`, response.data.label, response.data.message);
                         })

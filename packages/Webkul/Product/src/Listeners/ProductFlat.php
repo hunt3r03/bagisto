@@ -14,39 +14,24 @@ use Webkul\Product\Models\ProductAttributeValue;
 class ProductFlat
 {
     /**
-     * AttributeRepository Repository Object
-     *
-     * @var \Webkul\Attribute\Repositories\AttributeRepository
-     */
-    protected $attributeRepository;
-
-    /**
-     * AttributeOptionRepository Repository Object
-     *
-     * @var \Webkul\Attribute\Repositories\AttributeOptionRepository
-     */
-    protected $attributeOptionRepository;
-
-    /**
-     * ProductFlatRepository Repository Object
-     *
-     * @var \Webkul\Product\Repositories\ProductFlatRepository
-     */
-    protected $productFlatRepository;
-
-    /**
-     * ProductAttributeValueRepository Repository Object
-     *
-     * @var \Webkul\Product\Repositories\ProductAttributeValueRepository
-     */
-    protected $productAttributeValueRepository;
-
-    /**
      * Attribute Object
      *
      * @var \Webkul\Attribute\Contracts\Attribute
      */
     protected $attribute;
+
+    /**
+     * Attribute codes that can be fill during flat creation.
+     *
+     * @var string[]
+     */
+    protected $fillableAttributeCodes = [
+        'sku',
+        'name',
+        'price',
+        'weight',
+        'status',
+    ];
 
     /**
      * @var array
@@ -75,19 +60,12 @@ class ProductFlat
      * @return void
      */
     public function __construct(
-        AttributeRepository $attributeRepository,
-        AttributeOptionRepository $attributeOptionRepository,
-        ProductFlatRepository $productFlatRepository,
-        ProductAttributeValueRepository $productAttributeValueRepository
+        protected AttributeRepository $attributeRepository,
+        protected AttributeOptionRepository $attributeOptionRepository,
+        protected ProductFlatRepository $productFlatRepository,
+        protected ProductAttributeValueRepository $productAttributeValueRepository
     )
     {
-        $this->attributeRepository = $attributeRepository;
-
-        $this->attributeOptionRepository = $attributeOptionRepository;
-
-        $this->productAttributeValueRepository = $productAttributeValueRepository;
-
-        $this->productFlatRepository = $productFlatRepository;
     }
 
     /**
@@ -212,7 +190,7 @@ class ProductFlat
                     }
 
                     foreach ($familyAttributes[$product->attribute_family->id] as $attribute) {
-                        if ($parentProduct && ! in_array($attribute->code, array_merge($superAttributes[$parentProduct->id], ['sku', 'name', 'price', 'weight', 'status']))) {
+                        if ($parentProduct && ! in_array($attribute->code, array_merge($superAttributes[$parentProduct->id], $this->fillableAttributeCodes))) {
                             continue;
                         }
 

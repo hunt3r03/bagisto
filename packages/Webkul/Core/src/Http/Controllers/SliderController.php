@@ -2,28 +2,17 @@
 
 namespace Webkul\Core\Http\Controllers;
 
+use Webkul\Admin\DataGrids\SliderDataGrid;
 use Webkul\Core\Repositories\SliderRepository;
 
 class SliderController extends Controller
 {
     /**
-     * Contains route related configuration
+     * Contains route related configuration.
      *
      * @var array
      */
     protected $_config;
-
-    /**
-     * SliderRepository
-     *
-     * @var \Webkul\Core\Repositories\SliderRepository
-     */
-    protected $sliderRepository;
-
-    /**
-     * @var array
-     */
-    protected $channels;
 
     /**
      * Create a new controller instance.
@@ -31,10 +20,8 @@ class SliderController extends Controller
      * @param  \Webkul\Core\Repositories\SliderRepository  $sliderRepository
      * @return void
      */
-    public function __construct(SliderRepository $sliderRepository)
+    public function __construct(protected SliderRepository $sliderRepository)
     {
-        $this->sliderRepository = $sliderRepository;
-
         $this->_config = request('_config');
     }
 
@@ -45,6 +32,10 @@ class SliderController extends Controller
      */
     public function index()
     {
+        if (request()->ajax()) {
+            return app(SliderDataGrid::class)->toJson();
+        }
+
         return view($this->_config['view']);
     }
 
@@ -55,15 +46,13 @@ class SliderController extends Controller
      */
     public function create()
     {
-        $channels = core()->getAllChannels();
+        $locale = core()->getRequestedLocaleCode();
 
-        $locale = request()->get('locale') ?: core()->getCurrentLocale();
-
-        return view($this->_config['view'])->with("locale", $locale);
+        return view($this->_config['view'])->with('locale', $locale);
     }
 
     /**
-     * Creates the new sider item.
+     * Creates the new slider item.
      *
      * @return \Illuminate\Http\Response
      */
@@ -77,6 +66,7 @@ class SliderController extends Controller
         ]);
 
         $data = request()->all();
+
         $data['expired_at'] = $data['expired_at'] ?: null;
 
         if (isset($data['locale'])) {
@@ -122,13 +112,14 @@ class SliderController extends Controller
         ]);
 
         $data = request()->all();
+
         $data['expired_at'] = $data['expired_at'] ?: null;
 
         if (isset($data['locale'])) {
             $data['locale'] = implode(',', $data['locale']);
         }
 
-        if ( is_null(request()->image)) {
+        if (is_null(request()->image)) {
             session()->flash('error', trans('admin::app.settings.sliders.update-fail'));
 
             return redirect()->back();
@@ -146,25 +137,59 @@ class SliderController extends Controller
     }
 
     /**
-     * Delete a slider item and preserve the last one from deleting
+     * Delete the slider item.
      *
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
     {
-        $slider = $this->sliderRepository->findOrFail($id);
+        $this->sliderRepository->findOrFail($id);
 
         try {
             $this->sliderRepository->delete($id);
 
-            session()->flash('success', trans('admin::app.response.delete-success', ['name' => 'Slider']));
-
-            return response()->json(['message' => true], 200);
-        } catch(\Exception $e) {
-            session()->flash('error', trans('admin::app.response.delete-failed', ['name' => 'Slider']));
+            return response()->json(['message' => trans('admin::app.response.delete-success', ['name' => 'Slider'])]);
+        } catch (\Exception $e) {
+            report($e);
         }
 
-        return response()->json(['message' => false], 400);
+        return response()->json(['message' => trans('admin::app.response.delete-failed', ['name' => 'Slider'])], 500);
+    }
+
+    /**
+     * Remove the specified resources from database.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function massDestroy()
+    {
+        $suppressFlash = false;
+
+        if (request()->isMethod('post')) {
+            $indexes = explode(',', request()->input('indexes'));
+
+            foreach ($indexes as $key => $value) {
+                try {
+                    $this->sliderRepository->delete($value);
+                } catch (\Exception $e) {
+                    $suppressFlash = true;
+
+                    continue;
+                }
+            }
+
+            if (! $suppressFlash) {
+                session()->flash('success', trans('admin::app.datagrid.mass-ops.delete-success', ['resource' => 'sliders']));
+            } else {
+                session()->flash('info', trans('admin::app.datagrid.mass-ops.partial-action', ['resource' => 'sliders']));
+            }
+
+            return redirect()->back();
+        } else {
+            session()->flash('error', trans('admin::app.datagrid.mass-ops.method-error'));
+
+            return redirect()->back();
+        }
     }
 }

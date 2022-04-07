@@ -264,6 +264,7 @@ return [
         'short-description' => 'Kurze Beschreibungen',
         'recently-viewed'   => 'Kürzlich angesehene Produkte',
         'be-first-review'   => 'Sei der erste der eine Bewertung schreibt',
+        'tax-inclusive'     => 'Inclusive of all taxes',
     ],
 
     'shop'          => [
@@ -300,7 +301,10 @@ return [
         'wishlist'  => [
             'add-wishlist-text'     => 'Produkt zur Wunschliste hinzufügen',
             'remove-wishlist-text'  => 'Produkt von der Wunschliste entfernen'
-        ]
+        ],
+        'overlay-loader' => [
+            'message' => 'Im Gange',
+        ],
     ],
 
     'responsive'    => [

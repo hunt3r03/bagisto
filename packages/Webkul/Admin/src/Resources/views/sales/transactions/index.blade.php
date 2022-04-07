@@ -14,21 +14,24 @@
             <div class="page-action">
                 <div class="export-import" @click="showModal('downloadDataGrid')">
                     <i class="export-icon"></i>
+
                     <span>
                         {{ __('admin::app.export.export') }}
                     </span>
                 </div>
+
+                <a href="{{ route('admin.sales.transactions.create') }}" class="btn btn-lg btn-primary">{{ __('admin::app.sales.transactions.create-title') }}</a>
             </div>
         </div>
 
         <div class="page-content">
-            @inject('orderTransactionsDataGrid', 'Webkul\Admin\DataGrids\OrderTransactionsDataGrid')
-            {!! $orderTransactionsDataGrid->render() !!}
+            <datagrid-plus src="{{ route('admin.sales.transactions.index') }}"></datagrid-plus>
         </div>
     </div>
 
     <modal id="downloadDataGrid" :is-open="modalIds.downloadDataGrid">
         <h3 slot="header">{{ __('admin::app.export.download') }}</h3>
+
         <div slot="body">
             <export-form></export-form>
         </div>
@@ -36,5 +39,5 @@
 @stop
 
 @push('scripts')
-    @include('admin::export.export', ['gridName' => $orderTransactionsDataGrid])
+    @include('admin::export.export', ['gridName' => app('Webkul\Admin\DataGrids\OrderTransactionsDataGrid')])
 @endpush

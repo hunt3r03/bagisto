@@ -1,10 +1,11 @@
 @php
     $attributeRepository = app('\Webkul\Attribute\Repositories\AttributeFamilyRepository');
+
     $comparableAttributes = $attributeRepository->getComparableAttributesBelongsToFamily();
 
-    $locale = request()->get('locale') ?: app()->getLocale();
+    $locale = core()->getRequestedLocaleCode();
 
-    $attributeOptionTranslations = DB::table('attribute_option_translations')->where('locale', $locale)->get()->toJson();
+    $attributeOptionTranslations = DB::table('attribute_option_translations')->where('locale', $locale)->get();
 @endphp
 
 @push('scripts')
@@ -68,9 +69,21 @@
 
                                     @case('addToCartHtml')
                                         <div class="action">
-                                            <div v-html="product.addToCartHtml"></div>
+                                            <div>
+                                                <span class="d-inline-block">
+                                                    <form :action="`${baseUrl}/checkout/cart/add/${product.product_id}`" method="POST">
+                                                        @csrf
 
-                                            <span class="icon white-cross-sm-icon remove-product" @click="removeProductCompare(product.id)"></span>
+                                                        <input type="hidden" name="product_id" :value="product.product_id">
+
+                                                        <input type="hidden" name="quantity" value="1">
+
+                                                        <span v-html="product.addToCartHtml"></span>
+                                                    </form>
+                                                </span>
+
+                                                <span class="icon white-cross-sm-icon remove-product" @click="removeProductCompare(product.id)"></span>
+                                            </div>
                                         </div>
                                         @break
 
@@ -106,12 +119,17 @@
                                                 <span v-else class="fs16">__</span>
                                                 @break;
 
+                                            @case('multiselect')
+                                                <span v-if="product.product['{{ $attribute['code'] }}']" v-html="getAttributeOptions(product['{{ $attribute['code'] }}'] ? product : product.product['{{ $attribute['code'] }}'] ? product.product : null, '{{ $attribute['code'] }}', 'multiple')" class="fs16"></span>
+                                                <span v-else class="fs16">__</span>
+                                                @break
+
                                             @case ('file')
                                             @case ('image')
                                                 <a :href="`${baseUrl}/${product.url_key}`" class="unset">
                                                     <img
                                                         class="image-wrapper"
-                                                        :src="'storage/' + product.product['{{ $attribute['code'] }}']"
+                                                        :src="storageUrl + product.product['{{ $attribute['code'] }}']"
                                                         :onerror="`this.src='${baseUrl}/vendor/webkul/ui/assets/images/product/large-product-placeholder.png'`" alt="" />
                                                 </a>
                                                 @break;
@@ -144,11 +162,12 @@
             data: function () {
                 return {
                     'products': [],
+                    'baseUrl': '{{ url()->to('/') }}',
+                    'storageUrl': '{{ Storage::url('/') }}',
+                    'isCustomer': '{{ auth()->guard('customer')->user() ? "true" : "false" }}' == 'true',
                     'isProductListLoaded': false,
-                    'baseUrl': "{{ url()->to('/') }}",
-                    'attributeOptions': JSON.parse(@json($attributeOptionTranslations)),
-                    'isCustomer': '{{ auth()->guard('customer')->user() ? "true" : "false" }}' == "true",
-                }
+                    'attributeOptions': @json($attributeOptionTranslations),
+                };
             },
 
             mounted: function () {
@@ -193,10 +212,13 @@
                     } else {
                         this.isProductListLoaded = true;
                     }
-
                 },
 
                 'removeProductCompare': function (productId) {
+                    if (productId == 'all' && ! confirm('{{ __('shop::app.customer.compare.confirm-remove-all') }}')) {
+                        return;
+                    }
+
                     if (this.isCustomer) {
                         this.$http.delete(`${this.baseUrl}/comparison?productId=${productId}`)
                         .then(response => {
@@ -207,6 +229,8 @@
                             }
 
                             window.flashMessages = [{'type': 'alert-success', 'message': response.data.message }];
+
+                            this.updateCompareCount();
 
                             this.$root.addFlashMessages();
                         })

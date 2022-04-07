@@ -3,6 +3,7 @@
 namespace Webkul\Admin\Http\Controllers\Sales;
 
 use Illuminate\Support\Facades\Event;
+use Webkul\Admin\DataGrids\OrderDataGrid;
 use Webkul\Admin\Http\Controllers\Controller;
 use Webkul\Sales\Repositories\OrderRepository;
 use \Webkul\Sales\Repositories\OrderCommentRepository;
@@ -17,20 +18,6 @@ class OrderController extends Controller
     protected $_config;
 
     /**
-     * OrderRepository object
-     *
-     * @var \Webkul\Sales\Repositories\OrderRepository
-     */
-    protected $orderRepository;
-
-    /**
-     * OrderCommentRepository object
-     *
-     * @var \Webkul\Sales\Repositories\OrderCommentRepository
-     */
-    protected $orderCommentRepository;
-
-    /**
      * Create a new controller instance.
      *
      * @param  \Webkul\Sales\Repositories\OrderRepository  $orderRepository
@@ -38,17 +25,11 @@ class OrderController extends Controller
      * @return void
      */
     public function __construct(
-        OrderRepository $orderRepository,
-        OrderCommentRepository $orderCommentRepository
+        protected OrderRepository $orderRepository,
+        protected OrderCommentRepository $orderCommentRepository
     )
     {
-        $this->middleware('admin');
-
         $this->_config = request('_config');
-
-        $this->orderRepository = $orderRepository;
-
-        $this->orderCommentRepository = $orderCommentRepository;
     }
 
     /**
@@ -58,6 +39,10 @@ class OrderController extends Controller
      */
     public function index()
     {
+        if (request()->ajax()) {
+            return app(OrderDataGrid::class)->toJson();
+        }
+
         return view($this->_config['view']);
     }
 
