@@ -40,7 +40,7 @@ WORKDIR /var/www
 USER root
 RUN chmod -R 777 /var/www
 RUN git clone https://github.com/hunt3r03/bagisto.git
-RUN cd laravel
+RUN cd bagisto
 RUN mv $PWD/. /var/www
 
 USER $user 
