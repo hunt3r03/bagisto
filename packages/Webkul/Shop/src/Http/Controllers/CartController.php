@@ -82,7 +82,11 @@ class CartController extends Controller
                 ['product_id' => $id, 'cart_id' => cart()->getCart() ?? 0]
             );
 
-            return redirect()->route('shop.productOrCategory.index', $product->url_key);
+            if ($product != null) {
+                return redirect()->route('shop.productOrCategory.index', $product->url_key);
+            }
+            
+            session()->flash('error', trans('customer::app.product-removed'));
         }
 
         return redirect()->back();
@@ -100,6 +104,22 @@ class CartController extends Controller
 
         if ($result) {
             session()->flash('success', trans('shop::app.checkout.cart.item.success-remove'));
+        }
+
+        return redirect()->back();
+    }
+
+    /**
+     * Removes the item from the cart if it exists.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function removeAllItems()
+    {
+        $result = Cart::removeAllItems();
+
+        if ($result) {
+            session()->flash('success', trans('shop::app.checkout.cart.item.success-all-remove'));
         }
 
         return redirect()->back();
@@ -205,13 +225,21 @@ class CartController extends Controller
      */
     private function onFailureAddingToCart($result): bool
     {
-        if (is_array($result) && isset($result['warning'])) {
+        if (
+            is_array($result)
+            && isset($result['warning'])
+        ) {
             session()->flash('warning', $result['warning']);
+
             return true;
         }
 
-        if (is_array($result) && isset($result['info'])) {
+        if (
+            is_array($result)
+            && isset($result['info'])
+        ) {
             session()->flash('info', $result['info']);
+            
             return true;
         }
 

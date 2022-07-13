@@ -123,7 +123,10 @@
                                                 <div class="no-padding col-12 cursor-pointer fs16 item-actions">
                                                     @auth('customer')
                                                         @if ($showWishlist)
-                                                            @if ($item->parent_id != 'null' || $item->parent_id != null)
+                                                            @if (
+                                                                $item->parent_id != 'null'
+                                                                || $item->parent_id != null
+                                                            )
                                                                 <div class="d-inline-block">
                                                                     @include('shop::products.wishlist', [
                                                                         'route' => route('shop.movetowishlist', $item->id),
@@ -182,22 +185,36 @@
                                 </div>
 
                                 {!! view_render_event('bagisto.shop.checkout.cart.controls.after', ['cart' => $cart]) !!}
-                                    <div class="misc">
-                                        <a
-                                            class="theme-btn light fs16 text-center"
-                                            href="{{ route('shop.home.index') }}">
-                                            {{ __('shop::app.checkout.cart.continue-shopping') }}
-                                        </a>
+                                <div class="misc">
+                                    <a
+                                        class="theme-btn light fs16 text-center"
+                                        href="{{ route('shop.home.index') }}">
+                                        {{ __('shop::app.checkout.cart.continue-shopping') }}
+                                    </a>
 
-                                        @if ($item->product->getTypeInstance()->showQuantityBox() === true)
-                                            <button
-                                                type="submit"
-                                                class="theme-btn light unset">
+                                    <form
+                                        method="POST"
+                                        @submit.prevent="onSubmit"
+                                        action="{{ route('velocity.cart.remove.all.items') }}">
+                                        @csrf
+                                        <button
+                                            type="submit"
+                                            onclick="return confirm('{{ __('shop::app.checkout.cart.confirm-action') }}')"
+                                            class="theme-btn light unset">
 
-                                                {{ __('shop::app.checkout.cart.update-cart') }}
-                                            </button>
-                                        @endif
-                                    </div>
+                                            {{ __('shop::app.checkout.cart.remove-all-items') }}
+                                        </button>
+                                    </form>
+
+                                    @if ($item->product->getTypeInstance()->showQuantityBox() === true)
+                                        <button
+                                            type="submit"
+                                            class="theme-btn light unset">
+
+                                            {{ __('shop::app.checkout.cart.update-cart') }}
+                                        </button>
+                                    @endif
+                                </div>
 
                                 {!! view_render_event('bagisto.shop.checkout.cart.controls.after', ['cart' => $cart]) !!}
                             </form>

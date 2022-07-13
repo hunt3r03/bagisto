@@ -63,7 +63,10 @@
 
                         @include ('shop::products.price', ['product' => $product])
 
-                        @if (Webkul\Tax\Helpers\Tax::isTaxInclusive() && $product->getTypeInstance()->getTaxCategory())
+                        @if (
+                            Webkul\Tax\Helpers\Tax::isTaxInclusive()
+                            && $product->getTypeInstance()->getTaxCategory()
+                        )
                             <div>
                                 {{ __('shop::app.products.tax-inclusive') }}
                             </div>
@@ -275,12 +278,6 @@
                     this.qty = parseInt(this.qty) + 1;
                 }
             }
-        });
-
-        $(document).ready(function() {
-            var addTOButton = document.getElementsByClassName('add-to-buttons')[0];
-            document.getElementById('loader').style.display="none";
-            addTOButton.style.display="flex";
         });
 
         window.onload = function() {

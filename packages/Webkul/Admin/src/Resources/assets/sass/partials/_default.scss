@@ -349,7 +349,6 @@ body {
                     .arrow-icon {
                         display: inline-block;
                         position: absolute;
-                        right: 0;
                     }
                 }
 
@@ -769,6 +768,7 @@ body {
     color: $read-all-text-color;
     background: none;
     border: none;
+    cursor: pointer;
 }
 
 #notif-title {

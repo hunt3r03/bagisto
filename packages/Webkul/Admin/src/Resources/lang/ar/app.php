@@ -88,7 +88,7 @@ return [
         'mode'                     => 'الوضع',
         'account-title'            => 'حساب',
     ],
-    
+
     'acl' => [
         'dashboard'                => 'لوحة التحكم',
         'sales'                    => 'المبيعات',
@@ -286,6 +286,9 @@ return [
             'confirm-password' => 'تأكيد كلمة المرور',
             'back-link-title'  => 'العودة للتوقيع',
             'submit-btn-title' => 'بريد إلكتروني كلمة مرور إعادة تعيين وصلة',
+            'passwords'        => [
+                'throttled' => 'تحذير: لقد طلبت إعادة تعيين كلمة المرور مؤخرًا ، يرجى التحقق من بريدك الإلكتروني.',
+            ],
         ],
 
         'reset-password' => [
@@ -519,29 +522,30 @@ return [
                 'invoice-missing'   => 'معرف الفاتورة هذا غير موجود',
                 'transaction-saved' => 'تم حفظ الصفقة',
                 'already-paid'      => 'تم دفع هذه الفاتورة بالفعل',
+                'transaction-amount-exceeds' => 'المبلغ المحدد لهذه المعاملة أكبر من المبلغ الإجمالي للفاتورة.',
             ],
         ],
     ],
 
     'catalog' => [
         'products' => [
-            'title'                         => 'المنتجات',
-            'add-product-btn-title'         => 'أضف المنتج',
-            'add-title'                     => 'أضف المنتج',
-            'edit-title'                    => 'حرر المنتج',
-            'save-btn-title'                => 'احفظ المنتج',
-            'general'                       => 'ألف-لمحة عامة',
-            'product-type'                  => 'نوع المنتج',
-            'type'                          => [
+            'title'                 => 'المنتجات',
+            'add-product-btn-title' => 'أضف المنتج',
+            'add-title'             => 'أضف المنتج',
+            'edit-title'            => 'حرر المنتج',
+            'save-btn-title'        => 'احفظ المنتج',
+            'general'               => 'ألف-لمحة عامة',
+            'product-type'          => 'نوع المنتج',
+            'type'                  => [
                 'simple'                        => 'بسيط',
                 'booking'                       => 'الحجز',
                 'bundle'                        => 'حزمة',
                 'downloadable'                  => 'للتحميل',
                 'grouped'                       => 'مجمعة',
-                'virtual'                       => 'افتراضية',            
+                'virtual'                       => 'افتراضية',
                 'configurable'                  => 'شكلي',
 
-            ], 
+            ],
             'simple'                        => 'بسيط',
             'configurable'                  => 'مهيء',
             'familiy'                       => 'الصفة الأسرة',
@@ -614,6 +618,11 @@ return [
             'save'                          => 'يحفظ',
             'cancel'                        => 'يلغي',
             'saved-inventory-message'       => 'تم حفظ مخزون المنتج بنجاح.',
+            'validations'                   => [
+                'quantity-required' => 'Quantity is required.',
+                'quantity-integer'  => 'Quantity should be integer.',
+                'quantity-min-zero' => 'Quantity should be greater then zero.',
+            ],
         ],
 
         'attributes' => [
@@ -685,6 +694,8 @@ return [
             'name'                 => 'اسم',
             'groups'               => 'المجموعات',
             'add-group-title'      => 'أضف المجموعة',
+            'edit-group-title'     => 'Edit Group',
+            'update-group-title'   => 'Update Group',
             'position'             => 'موضع',
             'attribute-code'       => 'الشفرة',
             'type'                 => 'النوع',
@@ -1295,7 +1306,7 @@ return [
             'create-success' => 'Sitemap created successfully.',
             'update-success' => 'Sitemap updated successfully.',
             'delete-success' => 'Sitemap deleted successfully.',
-        ]
+        ],
     ],
 
     'error' => [

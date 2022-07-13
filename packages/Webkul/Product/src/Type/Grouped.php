@@ -146,8 +146,8 @@ class Grouped extends AbstractType
             return false;
         }
 
-        if (ProductFlat::query()->select('id')->whereIn('product_id', $this->getChildrenIds())->where('status', 0)->first()) {
-            return false;
+        if (ProductFlat::query()->select('id')->whereIn('product_id', $this->getChildrenIds())->where('status', 1)->first()) {
+            return true;
         }
 
         return true;
@@ -202,7 +202,10 @@ class Grouped extends AbstractType
      */
     public function prepareForCart($data)
     {
-        if (! isset($data['qty']) || ! is_array($data['qty'])) {
+        if (
+            ! isset($data['qty'])
+            || ! is_array($data['qty'])
+        ) {
             return trans('shop::app.checkout.cart.integrity.missing_options');
         }
 

@@ -516,6 +516,7 @@ return [
                 'invoice-missing'   => 'This invoice id does not exist',
                 'transaction-saved' => 'The transaction has been saved',
                 'already-paid'      => 'This invoice has already been paid',
+                'transaction-amount-exceeds' => 'The specified amount of this transaction exceeds the total amount of the invoice.',
             ],
         ],
     ],
@@ -601,6 +602,11 @@ return [
             'save'                          => 'Save',
             'cancel'                        => 'Cancel',
             'saved-inventory-message'       => 'Product inventory saved successfully.',
+            'validations'                   => [
+                'quantity-required' => 'Quantity is required.',
+                'quantity-integer'  => 'Quantity should be integer.',
+                'quantity-min-zero' => 'Quantity should be greater then zero.',
+            ],
         ],
 
         'attributes' => [
@@ -672,6 +678,8 @@ return [
             'name'                 => 'Nazwa',
             'groups'               => 'Grupy',
             'add-group-title'      => 'Dodaj grupę',
+            'edit-group-title'     => 'Edit Group',
+            'update-group-title'   => 'Update Group',
             'position'             => 'Pozycja',
             'attribute-code'       => 'Kod',
             'type'                 => 'Rodzaj',

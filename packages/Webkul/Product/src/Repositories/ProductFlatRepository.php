@@ -76,14 +76,7 @@ class ProductFlatRepository extends Repository
     {
         $qb = $this->categoryProductQuerybuilder($categoryId);
 
-        $productFlatIds   = $qb->pluck('id')->toArray();
-        $productIds       = $qb->pluck('product_flat.product_id')->toArray();
-
-        $childProductIds = $this->model->distinct()
-            ->whereIn('parent_id', $productFlatIds)
-            ->pluck('product_id')->toArray();
-
-        $productIds = array_merge($productIds, $childProductIds);
+        $childQuery = $this->model->distinct()->whereIn('parent_id', $qb->distinct()->select(['id']));
 
         $attributeValues = $this->model
             ->distinct()
@@ -92,7 +85,10 @@ class ProductFlatRepository extends Repository
             ->leftJoin('product_super_attributes as ps', 'product_flat.product_id', 'ps.product_id')
             ->select('pa.integer_value', 'pa.text_value', 'pa.attribute_id', 'ps.attribute_id as attributeId')
             ->where('is_filterable', 1)
-            ->WhereIn('pa.product_id', $productIds)
+            ->where(function ($query) use ($qb, $childQuery) {
+                $query->whereIn('pa.product_id', $qb->distinct()->select(['product_flat.product_id']));
+                $query->orWhereIn('pa.product_id', $childQuery->select(['product_flat.product_id']));
+            })
             ->get();
 
         $attributeInfo['attributeOptions'] =  $attributeInfo['attributes'] = [];
@@ -102,9 +98,15 @@ class ProductFlatRepository extends Repository
 
             foreach ($attributeKeys as $key) {
                 if (! is_null($attribute[$key])) {
-                    if ($key == 'integer_value' && ! in_array($attribute[$key], $attributeInfo['attributeOptions'])) {
+                    if (
+                        $key == 'integer_value'
+                        && ! in_array($attribute[$key], $attributeInfo['attributeOptions'])
+                    ) {
                         array_push($attributeInfo['attributeOptions'], $attribute[$key]);
-                    } else if ($key == 'text_value' && ! in_array($attribute[$key], $attributeInfo['attributeOptions'])) {
+                    } elseif (
+                        $key == 'text_value'
+                        && ! in_array($attribute[$key], $attributeInfo['attributeOptions'])
+                    ) {
                         $multiSelectArrributes = explode(",", $attribute[$key]);
 
                         foreach ($multiSelectArrributes as $multi) {
@@ -112,7 +114,13 @@ class ProductFlatRepository extends Repository
                                 array_push($attributeInfo['attributeOptions'], $multi);
                             }
                         }
-                    } else if (($key == 'attribute_id' || $key == 'attributeId') && ! in_array($attribute[$key], $attributeInfo['attributes'])) {
+                    } elseif (
+                        (
+                            $key == 'attribute_id'
+                            || $key == 'attributeId'
+                        )
+                        && ! in_array($attribute[$key], $attributeInfo['attributes'])
+                    ) {
                         array_push($attributeInfo['attributes'], $attribute[$key]);
                     }
                 }
@@ -196,7 +204,7 @@ class ProductFlatRepository extends Repository
             $filterAttributes = $this->getProductsRelatedFilterableAttributes($category);
         }
 
-        if (! count($filterAttributes) > 0) {
+        if (empty($filterAttributes)) {
             $filterAttributes = $this->attributeRepository->getFilterAttributes();
         }
 

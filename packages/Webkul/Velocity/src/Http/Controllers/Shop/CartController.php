@@ -64,11 +64,15 @@ class CartController extends Controller
     {
         try {
             $cart = Cart::getCart();
+
             $id = request()->get('product_id');
 
             $cart = Cart::addProduct($id, request()->all());
 
-            if (is_array($cart) && isset($cart['warning'])) {
+            if (
+                is_array($cart)
+                && isset($cart['warning'])
+            ) {
                 $response = [
                     'status'  => 'warning',
                     'message' => $cart['warning'],
@@ -76,12 +80,6 @@ class CartController extends Controller
             }
 
             if ($cart instanceof CartModel) {
-                $formattedItems = [];
-
-                foreach ($cart->items as $item) {
-                    array_push($formattedItems, $this->velocityHelper->formatCartItem($item));
-                }
-
                 $response = [
                     'status'         => 'success',
                     'totalCartItems' => sizeof($cart->items),
@@ -97,7 +95,6 @@ class CartController extends Controller
                 }
             }
         } catch(\Exception $exception) {
-
             session()->flash('warning', __($exception->getMessage()));
 
             $product = $this->productRepository->find($id);
@@ -141,5 +138,21 @@ class CartController extends Controller
             'label'   => trans('velocity::app.shop.general.alert.error'),
             'message' => trans('velocity::app.error.something_went_wrong'),
         ]);
+    }
+
+    /**
+     * Removes the item from the cart if it exists.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function removeAllItems()
+    {
+        $result = Cart::removeAllItems();
+
+        if ($result) {
+            session()->flash('success', trans('shop::app.checkout.cart.item.success-all-remove'));
+        }
+
+        return redirect()->back();
     }
 }
