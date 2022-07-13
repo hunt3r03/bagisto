@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['8.0', '8.1']
+        php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} test on ${{ matrix.operating-system }}
 
     services:
@@ -107,8 +107,7 @@ jobs:
             platforms: linux/amd64
             tags: |
                 hunt3r03/bagisto:latest
-                cache-from: type=registry,ref=hunt3r03/bagisto:latest
-                cache-to: type=inline
+              
       - name: Docker images list
         run: |
            sudo docker image list
