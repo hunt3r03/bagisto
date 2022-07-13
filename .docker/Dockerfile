@@ -1,4 +1,4 @@
-FROM php:7.4-fpm
+FROM php:8.0.21-apache
 
 # Get argument defined in docker-compose file
 ARG user
